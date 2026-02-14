@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Number Oracle (Camera Numerology)</title>
+    <style>
+      :root {
+        --bg: #120f21;
+        --panel: #1a1430;
+        --panel-2: #221a3f;
+        --text: #f8f5ff;
+        --muted: #beb6d7;
+        --accent: #f7c948;
+        --good: #66f2b4;
+        --bad: #ff7a8e;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "Avenir Next", "Trebuchet MS", system-ui, sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(1000px 600px at 20% -10%, #3b2a6f 0%, transparent 60%),
+          radial-gradient(900px 500px at 90% 10%, #2b476e 0%, transparent 55%),
+          var(--bg);
+        padding: 14px;
+      }
+
+      .app {
+        width: min(760px, 100%);
+        margin: 0 auto;
+        display: grid;
+        gap: 12px;
+      }
+
+      .panel {
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 14px;
+        background: linear-gradient(180deg, var(--panel), var(--panel-2));
+        padding: 12px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 1.18rem;
+      }
+
+      p { margin: 8px 0 0; color: var(--muted); }
+
+      .camera-wrap {
+        position: relative;
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: #0d0a1a;
+      }
+
+      video {
+        width: 100%;
+        display: block;
+        aspect-ratio: 3 / 4;
+        object-fit: cover;
+      }
+
+      .scan-box {
+        position: absolute;
+        left: 11%;
+        top: 18%;
+        width: 78%;
+        height: 30%;
+        border: 2px dashed rgba(247, 201, 72, 0.8);
+        border-radius: 12px;
+        pointer-events: none;
+        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.2);
+      }
+
+      .actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      button {
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        background: #2a1f4b;
+        color: var(--text);
+        border-radius: 10px;
+        padding: 10px 12px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      button.primary {
+        background: linear-gradient(180deg, #f7c948, #e0a922);
+        color: #1e1b10;
+      }
+
+      .pill {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 999px;
+        font-size: 0.8rem;
+      }
+
+      .pill.good { background: rgba(102, 242, 180, 0.16); color: var(--good); }
+      .pill.bad { background: rgba(255, 122, 142, 0.16); color: var(--bad); }
+
+      .reading {
+        margin-top: 8px;
+        padding: 10px;
+        border-radius: 10px;
+        background: rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.09);
+      }
+
+      .numbers {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        color: #eaddff;
+      }
+
+      .loading {
+        color: #f7c948;
+        font-weight: 700;
+      }
+
+      .tiny { font-size: 0.8rem; }
+    </style>
+  </head>
+  <body>
+    <main class="app">
+      <section class="panel">
+        <h1>Number Oracle</h1>
+        <p>Point your camera at any number display (microwave, scale, clock, receipt). I will read the digits and reveal a numerology reading with zero medical or financial responsibility.</p>
+      </section>
+
+      <section class="panel">
+        <div class="camera-wrap">
+          <video id="video" playsinline muted></video>
+          <div class="scan-box"></div>
+        </div>
+        <canvas id="canvas" width="720" height="960" hidden></canvas>
+        <div class="actions" style="margin-top:10px;">
+          <button id="startBtn" class="primary" type="button">Start Camera</button>
+          <button id="scanBtn" type="button">Scan Numbers</button>
+          <button id="flipBtn" type="button">Flip Camera</button>
+        </div>
+        <p id="status" class="tiny">Tip: in iPhone Safari, allow camera permission when prompted.</p>
+      </section>
+
+      <section class="panel">
+        <div id="resultHeader" class="tiny">No scan yet.</div>
+        <div id="resultBody" class="reading">Your numerology message will appear here.</div>
+      </section>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <script>
+      const NUMEROLOGY_DB = {
+        0: { core: "The Void", vibe: "reset, mystery, blank canvas", gift: "reinvention", warning: "floating with no plan" },
+        1: { core: "The Spark", vibe: "independence, initiative, leadership", gift: "decisive action", warning: "ego traffic jam" },
+        2: { core: "The Diplomat", vibe: "cooperation, sensitivity, harmony", gift: "partnership power", warning: "people-pleasing" },
+        3: { core: "The Artist", vibe: "expression, joy, social energy", gift: "creative charisma", warning: "scatter mode" },
+        4: { core: "The Builder", vibe: "discipline, structure, routine", gift: "stability", warning: "rigidity" },
+        5: { core: "The Wanderer", vibe: "change, freedom, adventure", gift: "adaptability", warning: "impulsiveness" },
+        6: { core: "The Guardian", vibe: "care, home, responsibility", gift: "nurturing strength", warning: "over-control" },
+        7: { core: "The Seeker", vibe: "analysis, intuition, wisdom", gift: "deep insight", warning: "overthinking" },
+        8: { core: "The Executive", vibe: "power, success, ambition", gift: "manifestation", warning: "workaholism" },
+        9: { core: "The Sage", vibe: "compassion, endings, legacy", gift: "big-picture grace", warning: "martyr vibes" },
+        11: { core: "Master 11", vibe: "illumination, inspiration", gift: "vision", warning: "nervous overload" },
+        22: { core: "Master 22", vibe: "master builder", gift: "huge execution", warning: "pressure collapse" },
+        33: { core: "Master 33", vibe: "teacher-healer", gift: "service", warning: "self-sacrifice spiral" }
+      };
+
+      const NEGATIVE_SIGNATURES = new Set([4, 13, 16, 19, 26, 29, 31, 40, 47, 58, 66, 74, 88, 91]);
+
+      const videoEl = document.getElementById("video");
+      const canvasEl = document.getElementById("canvas");
+      const statusEl = document.getElementById("status");
+      const resultHeaderEl = document.getElementById("resultHeader");
+      const resultBodyEl = document.getElementById("resultBody");
+      const startBtnEl = document.getElementById("startBtn");
+      const scanBtnEl = document.getElementById("scanBtn");
+      const flipBtnEl = document.getElementById("flipBtn");
+
+      let stream = null;
+      let facingMode = "environment";
+      let ocrBusy = false;
+
+      function digitSum(value) {
+        return String(value)
+          .replace(/\D/g, "")
+          .split("")
+          .reduce((sum, d) => sum + Number(d), 0);
+      }
+
+      function reduceNumerology(num) {
+        let n = Number(num);
+        if ([11, 22, 33].includes(n)) return n;
+        while (n > 9) {
+          n = digitSum(n);
+          if ([11, 22, 33].includes(n)) return n;
+        }
+        return n;
+      }
+
+      function randomOf(list) {
+        return list[Math.floor(Math.random() * list.length)];
+      }
+
+      function makeHumor(tone, sourceLabel) {
+        if (tone === "bad") {
+          return randomOf([
+            `Numerically risky. Just to be safe, throw away that ${sourceLabel} before it summons chaos.`,
+            `I don't want to alarm you, but that ${sourceLabel} now has villain energy.`,
+            `That number is giving cosmic side-eye. Maybe retire that ${sourceLabel} immediately.`
+          ]);
+        }
+        return randomOf([
+          `Excellent omen. Your ${sourceLabel} might be your lucky artifact today.`,
+          `Very favorable vibes. Fortune appears to have your location pinned.`,
+          `Numerology says yes. Keep doing whatever you were doing with that ${sourceLabel}.`
+        ]);
+      }
+
+      function detectDeviceLabel(text) {
+        const t = text.toLowerCase();
+        if (t.includes("lb") || t.includes("kg")) return "scale";
+        if (t.includes(":") || t.includes("am") || t.includes("pm")) return "clock";
+        return randomOf(["microwave", "receipt", "price tag", "dashboard", "device"]);
+      }
+
+      function analyzeNumbers(found, rawText) {
+        const primary = Number(found[0]);
+        const reduced = reduceNumerology(primary);
+        const entry = NUMEROLOGY_DB[reduced] || NUMEROLOGY_DB[0];
+
+        const parityPenalty = primary % 2 === 0 ? 0 : 1;
+        const isNegative = NEGATIVE_SIGNATURES.has(primary) || (digitSum(primary) % 5 === 0 && parityPenalty === 1);
+        const tone = isNegative ? "bad" : "good";
+
+        const sourceLabel = detectDeviceLabel(rawText);
+        const humor = makeHumor(tone, sourceLabel);
+
+        const message = tone === "good"
+          ? `Core Archetype: <strong>${entry.core}</strong> (${reduced}). Vibe: ${entry.vibe}. Gift right now: <strong>${entry.gift}</strong>. ${humor}`
+          : `Core Archetype: <strong>${entry.core}</strong> (${reduced}). Warning zone: ${entry.warning}. This pattern reads as turbulent. ${humor}`;
+
+        return { tone, reduced, entry, message };
+      }
+
+      async function startCamera() {
+        try {
+          if (stream) {
+            stream.getTracks().forEach((t) => t.stop());
+          }
+
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: { ideal: facingMode },
+              width: { ideal: 1280 },
+              height: { ideal: 720 }
+            },
+            audio: false
+          });
+
+          videoEl.srcObject = stream;
+          await videoEl.play();
+          statusEl.textContent = `Camera ready (${facingMode}). Position numbers inside the yellow box.`;
+        } catch (error) {
+          statusEl.textContent = "Could not start camera. Check permissions in Safari settings.";
+        }
+      }
+
+      function captureFrame() {
+        const ctx = canvasEl.getContext("2d");
+        const vw = videoEl.videoWidth;
+        const vh = videoEl.videoHeight;
+        if (!vw || !vh) return null;
+
+        canvasEl.width = vw;
+        canvasEl.height = vh;
+        ctx.drawImage(videoEl, 0, 0, vw, vh);
+
+        const cropX = Math.floor(vw * 0.11);
+        const cropY = Math.floor(vh * 0.18);
+        const cropW = Math.floor(vw * 0.78);
+        const cropH = Math.floor(vh * 0.30);
+
+        const imageData = ctx.getImageData(cropX, cropY, cropW, cropH);
+        return imageData;
+      }
+
+      function extractNumbers(text) {
+        const matches = text.match(/\d{1,6}/g) || [];
+        const unique = [...new Set(matches)];
+        unique.sort((a, b) => b.length - a.length || Number(a) - Number(b));
+        return unique;
+      }
+
+      async function scanNow() {
+        if (ocrBusy) return;
+        if (!videoEl.srcObject) {
+          statusEl.textContent = "Start camera first.";
+          return;
+        }
+
+        const frame = captureFrame();
+        if (!frame) {
+          statusEl.textContent = "Camera frame not ready yet.";
+          return;
+        }
+
+        ocrBusy = true;
+        statusEl.innerHTML = '<span class="loading">Reading numbers...</span>';
+
+        try {
+          const { data } = await Tesseract.recognize(frame, "eng", {
+            tessedit_char_whitelist: "0123456789:.-kglbamPMAM"
+          });
+
+          const numbers = extractNumbers(data.text || "");
+          if (!numbers.length) {
+            resultHeaderEl.textContent = "No numbers detected.";
+            resultBodyEl.innerHTML = "I saw shapes, but no valid numbers. Try better lighting or move closer.";
+            statusEl.textContent = "No digits found. Try again.";
+            return;
+          }
+
+          const reading = analyzeNumbers(numbers, data.text || "");
+          resultHeaderEl.innerHTML = `Detected: <span class="numbers">${numbers.join(", ")}</span> · Root: <span class="numbers">${reading.reduced}</span> <span class="pill ${reading.tone}">${reading.tone === "good" ? "Lucky" : "Caution"}</span>`;
+          resultBodyEl.innerHTML = reading.message;
+          statusEl.textContent = "Scan complete.";
+        } catch (error) {
+          resultHeaderEl.textContent = "Scan failed.";
+          resultBodyEl.textContent = "OCR had a cosmic malfunction. Try again.";
+          statusEl.textContent = "OCR error.";
+        } finally {
+          ocrBusy = false;
+        }
+      }
+
+      startBtnEl.addEventListener("click", startCamera);
+      scanBtnEl.addEventListener("click", scanNow);
+      flipBtnEl.addEventListener("click", async () => {
+        facingMode = facingMode === "environment" ? "user" : "environment";
+        await startCamera();
+      });
+    </script>
+  </body>
+</html>
