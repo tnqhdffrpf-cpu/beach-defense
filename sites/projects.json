@@ -1,0 +1,27 @@
+[
+  {
+    "name": "Escape Room",
+    "path": "./sites/escape-room/",
+    "description": "Story-based escape puzzle with interactive clues, safe keypad, and timed ending."
+  },
+  {
+    "name": "Beach Defense",
+    "path": "./sites/beach-defense/",
+    "description": "Arcade-style coastal defense game."
+  },
+  {
+    "name": "Harrisburg Track Hub",
+    "path": "./sites/harrisburg-track-hub/",
+    "description": "Track-and-field info hub site."
+  },
+  {
+    "name": "Cannon Beach Surf",
+    "path": "./sites/cannon-beach-surf/",
+    "description": "Surf lessons landing page redesign."
+  },
+  {
+    "name": "Oracle Genie",
+    "path": "./sites/oracle-genie/",
+    "description": "Oracle-themed project site."
+  }
+]
