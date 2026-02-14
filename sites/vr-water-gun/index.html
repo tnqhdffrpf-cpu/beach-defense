@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>High Noon Splash VR</title>
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <style>
+      :root {
+        --bg: #0f172a;
+        --panel: rgba(15, 23, 42, 0.92);
+        --panel-border: rgba(148, 163, 184, 0.45);
+        --text: #f8fafc;
+        --muted: #cbd5e1;
+        --accent: #f59e0b;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+        background: radial-gradient(circle at top, #1f2937, var(--bg) 60%);
+        color: var(--text);
+      }
+
+      #hud {
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        z-index: 9;
+        background: var(--panel);
+        border: 1px solid var(--panel-border);
+        border-radius: 12px;
+        padding: 10px 12px;
+        min-width: 250px;
+        backdrop-filter: blur(2px);
+      }
+
+      #hud .line { font-size: 0.92rem; margin: 3px 0; color: var(--muted); }
+      #hud .line strong { color: var(--text); }
+      #hud .accent { color: var(--accent); }
+
+      #overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 10;
+        display: grid;
+        place-items: center;
+        background: rgba(2, 6, 23, 0.8);
+        padding: 16px;
+      }
+
+      #overlay.hidden { display: none; }
+
+      .card {
+        width: min(540px, 100%);
+        background: var(--panel);
+        border: 1px solid var(--panel-border);
+        border-radius: 14px;
+        padding: 16px;
+      }
+
+      .card h1 { margin: 0; font-size: 1.35rem; }
+      .card p { color: var(--muted); margin: 8px 0 0; line-height: 1.35; }
+
+      .btn-row {
+        margin-top: 14px;
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      button {
+        border: 1px solid #64748b;
+        background: #1e293b;
+        color: var(--text);
+        border-radius: 8px;
+        padding: 9px 12px;
+        cursor: pointer;
+        font-weight: 700;
+      }
+
+      button.primary {
+        background: linear-gradient(180deg, #fbbf24, #d97706);
+        color: #111827;
+        border-color: #fcd34d;
+      }
+
+      #crosshair {
+        position: fixed;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 8;
+        width: 14px;
+        height: 14px;
+        border: 2px solid rgba(255, 255, 255, 0.9);
+        border-radius: 999px;
+        pointer-events: none;
+      }
+
+      #crosshair.hidden { display: none; }
+
+      a-scene { height: 100vh; width: 100vw; }
+    </style>
+  </head>
+  <body>
+    <div id="hud">
+      <div class="line"><strong>High Noon Splash VR</strong></div>
+      <div class="line">Time: <strong id="timeText">60.0s</strong></div>
+      <div class="line">Score: <strong id="scoreText">0</strong></div>
+      <div class="line">Accuracy: <strong id="accuracyText">0%</strong></div>
+      <div class="line">Bullseyes: <strong id="bullseyeText">0</strong></div>
+      <div class="line">High Score: <strong class="accent" id="highScoreText">0</strong></div>
+    </div>
+
+    <div id="crosshair"></div>
+
+    <div id="overlay">
+      <div class="card">
+        <h1>High Noon Splash VR</h1>
+        <p>Use your water pistol to pop targets for 60 seconds. Center hits score higher.</p>
+        <p>Scoring: Bullseye +100, Inner ring +60, Outer ring +30.</p>
+        <p>Quest: press the browser VR button, then use trigger to shoot.</p>
+        <div class="btn-row">
+          <button id="startBtn" class="primary" type="button">Start Round</button>
+          <button id="musicBtn" type="button">Music: On</button>
+        </div>
+      </div>
+    </div>
+
+    <a-scene id="scene" renderer="colorManagement:true; antialias:true" xr-mode-ui="enabled: true">
+      <a-entity id="rig" position="0 1.6 4.5">
+        <a-camera id="camera" wasd-controls-enabled="false" look-controls="pointerLockEnabled: false"></a-camera>
+        <a-entity id="leftHand" laser-controls="hand: left" raycaster="objects: .target-hit; far: 30" line="color: #67e8f9; opacity: 0.5"></a-entity>
+        <a-entity id="rightHand" laser-controls="hand: right" raycaster="objects: .target-hit; far: 30" line="color: #67e8f9; opacity: 0.5"></a-entity>
+      </a-entity>
+
+      <a-sky color="#8fb9d7"></a-sky>
+      <a-plane position="0 0 0" rotation="-90 0 0" width="60" height="60" color="#d6b17e"></a-plane>
+
+      <a-box position="0 2 -12" depth="0.6" width="22" height="4.8" color="#a36a3a"></a-box>
+      <a-box position="0 0.7 -12" depth="0.6" width="22" height="2.4" color="#7a4b29"></a-box>
+      <a-box position="-7 0.7 -11" depth="1.6" width="2" height="2.2" color="#8b5a34"></a-box>
+      <a-box position="7 0.7 -11" depth="1.6" width="2" height="2.2" color="#8b5a34"></a-box>
+      <a-box position="0 0.8 -10.7" depth="2.2" width="5.5" height="0.35" color="#6b4226"></a-box>
+      <a-text value="SPLASH RANGE" position="-2.4 3.4 -11.3" width="12" color="#fde68a"></a-text>
+
+      <a-entity id="targetLayer"></a-entity>
+    </a-scene>
+
+    <script>
+      const ROUND_SECONDS = 60;
+      const TARGET_SIZE = 0.9;
+      const HIGH_SCORE_KEY = "vr_high_noon_splash_high_score_v1";
+
+      const positions = [
+        { x: -6.8, y: 1.6, z: -11.1 },
+        { x: -4.8, y: 2.4, z: -11.2 },
+        { x: -2.9, y: 1.2, z: -11.25 },
+        { x: -1.2, y: 2.1, z: -11.15 },
+        { x: 0.6, y: 1.4, z: -11.2 },
+        { x: 2.6, y: 2.35, z: -11.28 },
+        { x: 4.5, y: 1.35, z: -11.18 },
+        { x: 6.6, y: 2.2, z: -11.22 }
+      ];
+
+      const state = {
+        running: false,
+        shots: 0,
+        hits: 0,
+        bullseyes: 0,
+        score: 0,
+        roundEndAt: 0,
+        timerId: null,
+        activeTarget: null,
+        despawnId: null,
+        musicEnabled: true,
+        highScore: Number(localStorage.getItem(HIGH_SCORE_KEY) || 0)
+      };
+
+      const sceneEl = document.getElementById("scene");
+      const cameraEl = document.getElementById("camera");
+      const leftHandEl = document.getElementById("leftHand");
+      const rightHandEl = document.getElementById("rightHand");
+      const targetLayerEl = document.getElementById("targetLayer");
+      const overlayEl = document.getElementById("overlay");
+      const startBtnEl = document.getElementById("startBtn");
+      const musicBtnEl = document.getElementById("musicBtn");
+      const timeTextEl = document.getElementById("timeText");
+      const scoreTextEl = document.getElementById("scoreText");
+      const accuracyTextEl = document.getElementById("accuracyText");
+      const bullseyeTextEl = document.getElementById("bullseyeText");
+      const highScoreTextEl = document.getElementById("highScoreText");
+      const crosshairEl = document.getElementById("crosshair");
+
+      let audioCtx = null;
+      let musicLoopId = null;
+      let melodyStep = 0;
+
+      function ensureAudioCtx() {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === "suspended") audioCtx.resume();
+      }
+
+      function playPluck(freq, dur = 0.22, vol = 0.03, type = "triangle") {
+        if (!audioCtx) return;
+        const t = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, t);
+        gain.gain.setValueAtTime(0.0001, t);
+        gain.gain.exponentialRampToValueAtTime(vol, t + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(t);
+        osc.stop(t + dur + 0.03);
+      }
+
+      function playShotSound() {
+        playPluck(980, 0.06, 0.02, "square");
+        playPluck(640, 0.07, 0.012, "triangle");
+      }
+
+      function playHitSound(isBullseye) {
+        playPluck(isBullseye ? 1244 : 988, 0.1, 0.024, "sine");
+        if (isBullseye) playPluck(1661, 0.12, 0.02, "sine");
+      }
+
+      function startMusic() {
+        if (!state.musicEnabled || musicLoopId) return;
+        ensureAudioCtx();
+        const melody = [220, 247, 262, 294, 330, 294, 262, 247];
+        musicLoopId = window.setInterval(() => {
+          if (!state.running || !state.musicEnabled) return;
+          const n = melody[melodyStep % melody.length];
+          melodyStep += 1;
+          playPluck(n, 0.19, 0.011, "triangle");
+          if (melodyStep % 4 === 0) playPluck(n / 2, 0.24, 0.008, "sine");
+        }, 520);
+      }
+
+      function stopMusic() {
+        if (musicLoopId) {
+          clearInterval(musicLoopId);
+          musicLoopId = null;
+        }
+      }
+
+      function updateHud() {
+        const remaining = Math.max(0, state.roundEndAt - performance.now());
+        timeTextEl.textContent = `${(remaining / 1000).toFixed(1)}s`;
+        scoreTextEl.textContent = String(state.score);
+        const accuracy = state.shots ? Math.round((state.hits / state.shots) * 100) : 0;
+        accuracyTextEl.textContent = `${accuracy}%`;
+        bullseyeTextEl.textContent = String(state.bullseyes);
+        highScoreTextEl.textContent = String(state.highScore);
+      }
+
+      function clearActiveTarget() {
+        if (state.activeTarget && state.activeTarget.parentNode) {
+          state.activeTarget.parentNode.removeChild(state.activeTarget);
+        }
+        state.activeTarget = null;
+        if (state.despawnId) {
+          clearTimeout(state.despawnId);
+          state.despawnId = null;
+        }
+      }
+
+      function makeTarget(position) {
+        const wrap = document.createElement("a-entity");
+        wrap.object3D.position.set(position.x, position.y - 0.6, position.z);
+        wrap.setAttribute("animation", "property: position; to: " + `${position.x} ${position.y} ${position.z}` + "; dur: 220; easing: easeOutBack");
+
+        const hit = document.createElement("a-plane");
+        hit.classList.add("target-hit");
+        hit.setAttribute("width", TARGET_SIZE);
+        hit.setAttribute("height", TARGET_SIZE);
+        hit.setAttribute("material", "color: #ffffff; opacity: 0; transparent: true; side: double");
+        hit.dataset.targetId = String(Date.now());
+
+        const ring3 = document.createElement("a-circle");
+        ring3.setAttribute("radius", TARGET_SIZE * 0.47);
+        ring3.setAttribute("color", "#ffffff");
+
+        const ring2 = document.createElement("a-circle");
+        ring2.setAttribute("radius", TARGET_SIZE * 0.31);
+        ring2.setAttribute("color", "#ef4444");
+        ring2.setAttribute("position", "0 0 0.001");
+
+        const ring1 = document.createElement("a-circle");
+        ring1.setAttribute("radius", TARGET_SIZE * 0.14);
+        ring1.setAttribute("color", "#fef08a");
+        ring1.setAttribute("position", "0 0 0.002");
+
+        const stand = document.createElement("a-box");
+        stand.setAttribute("width", "0.08");
+        stand.setAttribute("height", "0.7");
+        stand.setAttribute("depth", "0.08");
+        stand.setAttribute("position", "0 -0.58 -0.05");
+        stand.setAttribute("color", "#6b4226");
+
+        wrap.appendChild(hit);
+        wrap.appendChild(ring3);
+        wrap.appendChild(ring2);
+        wrap.appendChild(ring1);
+        wrap.appendChild(stand);
+
+        const camPos = new THREE.Vector3();
+        cameraEl.object3D.getWorldPosition(camPos);
+        wrap.object3D.lookAt(camPos.x, position.y, camPos.z);
+
+        targetLayerEl.appendChild(wrap);
+        return hit;
+      }
+
+      function spawnTarget() {
+        if (!state.running) return;
+        clearActiveTarget();
+        const pos = positions[Math.floor(Math.random() * positions.length)];
+        state.activeTarget = makeTarget(pos);
+        state.despawnId = setTimeout(() => {
+          clearActiveTarget();
+          if (state.running) setTimeout(spawnTarget, 260);
+        }, 1450);
+      }
+
+      function scoreFromIntersection(intersection) {
+        const local = intersection.object.object3D.worldToLocal(intersection.point.clone());
+        const radius = Math.sqrt(local.x * local.x + local.y * local.y);
+        const normalized = radius / (TARGET_SIZE * 0.5);
+        if (normalized <= 0.24) return 100;
+        if (normalized <= 0.5) return 60;
+        return 30;
+      }
+
+      function shootFrom(origin, direction) {
+        if (!state.running) return;
+        state.shots += 1;
+        playShotSound();
+
+        const raycaster = new THREE.Raycaster(origin, direction.normalize(), 0, 40);
+        const hits = raycaster.intersectObjects(targetLayerEl.object3D.children, true);
+        const valid = hits.find((hit) => hit.object.el && hit.object.el.classList.contains("target-hit"));
+
+        if (valid) {
+          const pts = scoreFromIntersection(valid);
+          state.score += pts;
+          state.hits += 1;
+          if (pts === 100) state.bullseyes += 1;
+          playHitSound(pts === 100);
+          clearActiveTarget();
+          setTimeout(spawnTarget, 210);
+        }
+
+        updateHud();
+      }
+
+      function shootFromCamera() {
+        const origin = new THREE.Vector3();
+        const dir = new THREE.Vector3();
+        cameraEl.object3D.getWorldPosition(origin);
+        cameraEl.object3D.getWorldDirection(dir);
+        shootFrom(origin, dir);
+      }
+
+      function shootFromController(controllerEl) {
+        const origin = new THREE.Vector3();
+        const dir = new THREE.Vector3(0, 0, -1);
+        controllerEl.object3D.getWorldPosition(origin);
+        dir.applyQuaternion(controllerEl.object3D.getWorldQuaternion(new THREE.Quaternion()));
+        shootFrom(origin, dir);
+      }
+
+      function endRound() {
+        state.running = false;
+        clearActiveTarget();
+        updateHud();
+        stopMusic();
+
+        if (state.score > state.highScore) {
+          state.highScore = state.score;
+          localStorage.setItem(HIGH_SCORE_KEY, String(state.highScore));
+        }
+        updateHud();
+
+        const accuracy = state.shots ? Math.round((state.hits / state.shots) * 100) : 0;
+        overlayEl.classList.remove("hidden");
+        overlayEl.querySelector(".card").innerHTML = `
+          <h1>Round Complete</h1>
+          <p>Score: <strong>${state.score}</strong></p>
+          <p>Accuracy: <strong>${accuracy}%</strong> (${state.hits}/${state.shots})</p>
+          <p>Bullseyes: <strong>${state.bullseyes}</strong></p>
+          <p>High Score: <strong>${state.highScore}</strong></p>
+          <div class="btn-row">
+            <button id="startBtn" class="primary" type="button">Play Again</button>
+            <button id="musicBtn" type="button">Music: ${state.musicEnabled ? "On" : "Off"}</button>
+          </div>
+        `;
+
+        document.getElementById("startBtn").addEventListener("click", startRound);
+        document.getElementById("musicBtn").addEventListener("click", () => {
+          state.musicEnabled = !state.musicEnabled;
+          document.getElementById("musicBtn").textContent = `Music: ${state.musicEnabled ? "On" : "Off"}`;
+          if (!state.musicEnabled) stopMusic();
+          else if (state.running) startMusic();
+        });
+      }
+
+      function startRound() {
+        ensureAudioCtx();
+        overlayEl.classList.add("hidden");
+        state.running = true;
+        state.shots = 0;
+        state.hits = 0;
+        state.bullseyes = 0;
+        state.score = 0;
+        state.roundEndAt = performance.now() + ROUND_SECONDS * 1000;
+
+        updateHud();
+        spawnTarget();
+
+        if (state.musicEnabled) startMusic();
+
+        if (state.timerId) clearInterval(state.timerId);
+        state.timerId = setInterval(() => {
+          updateHud();
+          if (performance.now() >= state.roundEndAt) {
+            clearInterval(state.timerId);
+            state.timerId = null;
+            endRound();
+          }
+        }, 100);
+      }
+
+      function bindInputs() {
+        sceneEl.addEventListener("mousedown", () => {
+          if (sceneEl.is("vr-mode")) return;
+          shootFromCamera();
+        });
+
+        window.addEventListener("keydown", (event) => {
+          if (event.code === "Space" && !sceneEl.is("vr-mode")) {
+            event.preventDefault();
+            shootFromCamera();
+          }
+        });
+
+        rightHandEl.addEventListener("triggerdown", () => shootFromController(rightHandEl));
+        leftHandEl.addEventListener("triggerdown", () => shootFromController(leftHandEl));
+
+        sceneEl.addEventListener("enter-vr", () => {
+          crosshairEl.classList.add("hidden");
+        });
+
+        sceneEl.addEventListener("exit-vr", () => {
+          crosshairEl.classList.remove("hidden");
+        });
+      }
+
+      startBtnEl.addEventListener("click", startRound);
+      musicBtnEl.addEventListener("click", () => {
+        state.musicEnabled = !state.musicEnabled;
+        musicBtnEl.textContent = `Music: ${state.musicEnabled ? "On" : "Off"}`;
+        if (!state.musicEnabled) stopMusic();
+      });
+
+      highScoreTextEl.textContent = String(state.highScore);
+      updateHud();
+      bindInputs();
+    </script>
+  </body>
+</html>

@@ -1,5 +1,10 @@
 [
   {
+    "name": "VR Water Gun",
+    "path": "./sites/vr-water-gun/",
+    "description": "Quest-friendly WebXR cowboy target shooter with 60-second rounds, accuracy scoring, and high score."
+  },
+  {
     "name": "Escape Room",
     "path": "./sites/escape-room/",
     "description": "Story-based escape puzzle with interactive clues, safe keypad, and timed ending."
