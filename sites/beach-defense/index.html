@@ -1,0 +1,1775 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+    <title>Beachwatch Bastion</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Bungee:wght@400&family=Nunito:wght@600;700;800&display=swap");
+
+      :root {
+        --sky: #7fd4f7;
+        --sea: #138eb6;
+        --deep-sea: #0b5474;
+        --sand: #f3cf89;
+        --foam: #d8f8ff;
+        --panel: rgba(8, 42, 58, 0.86);
+        --panel-border: rgba(226, 251, 255, 0.36);
+        --accent: #ffba42;
+        --good: #58ec99;
+        --danger: #ff6666;
+        --text: #f8feff;
+      }
+
+      * {
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+      }
+
+      body {
+        font-family: "Nunito", "Trebuchet MS", sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(circle at 20% 18%, rgba(255, 255, 255, 0.34) 0%, transparent 32%),
+          radial-gradient(circle at 82% 9%, rgba(255, 255, 255, 0.28) 0%, transparent 34%),
+          linear-gradient(180deg, var(--sky) 0%, #57bae4 32%, var(--sea) 58%, var(--deep-sea) 100%);
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background-image:
+          radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.14) 0 1px, transparent 1px),
+          linear-gradient(100deg, rgba(255, 255, 255, 0.05) 20%, transparent 20% 60%, rgba(255, 255, 255, 0.05) 60%);
+        background-size: 24px 24px, 180px 180px;
+        opacity: 0.23;
+      }
+
+      #app {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+        gap: 10px;
+        padding: calc(env(safe-area-inset-top) + 8px) 10px calc(env(safe-area-inset-bottom) + 10px);
+      }
+
+      .hud,
+      .bottom-ui {
+        border: 1px solid var(--panel-border);
+        border-radius: 14px;
+        background: var(--panel);
+        backdrop-filter: blur(4px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.22);
+      }
+
+      .hud {
+        padding: 8px;
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 6px;
+        align-items: center;
+      }
+
+      .stat {
+        background: rgba(3, 24, 34, 0.62);
+        border: 1px solid rgba(200, 242, 255, 0.2);
+        border-radius: 10px;
+        padding: 6px 4px;
+        text-align: center;
+      }
+
+      .label {
+        display: block;
+        font-size: 0.6rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        opacity: 0.88;
+        line-height: 1;
+      }
+
+      .value {
+        display: block;
+        margin-top: 2px;
+        font-size: 1.02rem;
+        font-weight: 800;
+        line-height: 1;
+      }
+
+      .board-wrap {
+        position: relative;
+        min-height: 0;
+      }
+
+      #gameCanvas {
+        width: 100%;
+        height: 100%;
+        border-radius: 16px;
+        border: 1px solid rgba(243, 252, 255, 0.42);
+        background:
+          linear-gradient(0deg, rgba(11, 74, 92, 0.34), rgba(11, 74, 92, 0.34)),
+          linear-gradient(180deg, #1ea3cd 0%, #1886af 68%, #116e94 100%);
+        display: block;
+        touch-action: none;
+      }
+
+      .overlay {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+        z-index: 8;
+      }
+
+      .overlay.hidden {
+        display: none;
+      }
+
+      .overlay-card {
+        width: min(360px, 100%);
+        padding: 16px;
+        border-radius: 14px;
+        background: rgba(3, 21, 31, 0.88);
+        border: 1px solid rgba(206, 250, 255, 0.3);
+        text-align: center;
+      }
+
+      .overlay-card h1 {
+        margin: 0;
+        font-family: "Bungee", sans-serif;
+        font-size: 1.34rem;
+        color: #fff9cc;
+      }
+
+      .overlay-card p {
+        margin: 10px 0;
+        font-size: 0.93rem;
+      }
+
+      .overlay-card button {
+        margin-top: 8px;
+      }
+
+      .bottom-ui {
+        padding: 8px;
+        display: grid;
+        gap: 8px;
+      }
+
+      .actions {
+        display: grid;
+        grid-template-columns: 1fr auto auto auto auto;
+        gap: 8px;
+      }
+
+      button {
+        border: 1px solid rgba(237, 252, 255, 0.35);
+        border-radius: 10px;
+        background: rgba(5, 34, 48, 0.84);
+        color: var(--text);
+        font: inherit;
+        font-size: 0.92rem;
+        font-weight: 800;
+        padding: 10px 10px;
+        min-height: 42px;
+      }
+
+      button:active,
+      button.active {
+        transform: translateY(1px) scale(0.985);
+        background: rgba(20, 90, 118, 0.95);
+      }
+
+      button.primary {
+        background: linear-gradient(180deg, #ffcf6a, #ff9f45);
+        color: #1c1a14;
+        border-color: rgba(255, 244, 194, 0.65);
+      }
+
+      #fastBtn {
+        min-width: 54px;
+      }
+
+      .wave-loop {
+        display: block;
+        width: 28px;
+        height: 12px;
+        margin: 0 auto 2px;
+        border-radius: 999px;
+        overflow: hidden;
+        position: relative;
+        background: rgba(180, 241, 255, 0.2);
+      }
+
+      .wave-loop::before {
+        content: "";
+        position: absolute;
+        left: -42px;
+        top: 2px;
+        width: 70px;
+        height: 8px;
+        background:
+          radial-gradient(circle at 6px 6px, rgba(208, 251, 255, 0.85) 0 5px, transparent 6px),
+          radial-gradient(circle at 20px 6px, rgba(208, 251, 255, 0.85) 0 5px, transparent 6px),
+          radial-gradient(circle at 34px 6px, rgba(208, 251, 255, 0.85) 0 5px, transparent 6px),
+          radial-gradient(circle at 48px 6px, rgba(208, 251, 255, 0.85) 0 5px, transparent 6px),
+          radial-gradient(circle at 62px 6px, rgba(208, 251, 255, 0.85) 0 5px, transparent 6px);
+        animation: waveLoop 1.8s linear infinite;
+      }
+
+      #fastBtn.fast-on .wave-loop::before {
+        animation-duration: 0.75s;
+      }
+
+      #fastBtn.fast-on {
+        background: rgba(20, 90, 118, 0.95);
+      }
+
+      .speed-label {
+        font-size: 0.68rem;
+        letter-spacing: 0.06em;
+      }
+
+      @keyframes waveLoop {
+        from {
+          transform: translateX(0);
+        }
+        to {
+          transform: translateX(28px);
+        }
+      }
+
+      .tower-bar {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 7px;
+      }
+
+      .tower-btn {
+        position: relative;
+        padding: 8px 6px;
+        text-align: left;
+      }
+
+      .tower-btn strong {
+        display: block;
+        font-size: 0.8rem;
+        line-height: 1.1;
+      }
+
+      .tower-btn small {
+        opacity: 0.88;
+        font-size: 0.66rem;
+      }
+
+      .tower-btn .cost {
+        position: absolute;
+        right: 6px;
+        bottom: 6px;
+        color: #ffe28a;
+        font-size: 0.67rem;
+      }
+
+      .status {
+        min-height: 18px;
+        font-size: 0.82rem;
+        opacity: 0.95;
+      }
+
+      .status.warn {
+        color: #ffd39d;
+      }
+
+      .status.err {
+        color: #ffc4c4;
+      }
+
+      .status.ok {
+        color: #b8ffe2;
+      }
+
+      @media (max-width: 390px) {
+        .hud {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <header class="hud">
+        <div class="stat"><span class="label">Wave</span><span class="value" id="waveValue">1</span></div>
+        <div class="stat"><span class="label">Funds</span><span class="value" id="cashValue">300</span></div>
+        <div class="stat"><span class="label">Lives</span><span class="value" id="livesValue">20</span></div>
+        <div class="stat"><span class="label">Defeated</span><span class="value" id="killsValue">0</span></div>
+        <div class="stat"><span class="label">State</span><span class="value" id="stateValue">Build</span></div>
+      </header>
+
+      <section class="board-wrap">
+        <canvas id="gameCanvas" aria-label="Beach tower defense map"></canvas>
+        <div id="overlay" class="overlay">
+          <div class="overlay-card">
+            <h1>Beachwatch Bastion</h1>
+            <p>Build lifeguard defenses on the sand before sea creatures break through.</p>
+            <p>Tap a tower button, then tap a sandy build pad. Survive all 12 waves.</p>
+            <button id="startGameBtn" class="primary">Start Patrol</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="bottom-ui">
+        <div class="actions">
+          <button id="startWaveBtn" class="primary">Start Wave</button>
+          <button id="fastBtn"><span class="wave-loop"></span><span class="speed-label">x1</span></button>
+          <button id="upgradeBtn">Upgrade</button>
+          <button id="pauseBtn">Pause</button>
+          <button id="restartBtn">Restart</button>
+        </div>
+        <div class="tower-bar">
+          <button class="tower-btn" data-tower="lifeguard">
+            <strong>Lifeguard Post</strong>
+            <small>Fast single target</small>
+            <span class="cost">$70</span>
+          </button>
+          <button class="tower-btn" data-tower="watercannon">
+            <strong>Water Cannon</strong>
+            <small>Splash control</small>
+            <span class="cost">$95</span>
+          </button>
+          <button class="tower-btn" data-tower="helicopter">
+            <strong>Coast Chopper</strong>
+            <small>Heavy rescue bursts</small>
+            <span class="cost">$135</span>
+          </button>
+        </div>
+        <div id="status" class="status">Select a tower and place it on a sandy build pad.</div>
+      </section>
+    </div>
+
+    <script>
+      "use strict";
+
+      const CONFIG = {
+        maxWaves: 12,
+        initialLives: 20,
+        initialCash: 300,
+        waveGapMs: 2300,
+        waveClearBonusBase: 20,
+        waveClearBonusGrowth: 9,
+        birdsPerWave: 3,
+        birdBombRadius: 44,
+        birdBombDamage: 125,
+      };
+
+      const TOWER_STATS = {
+        lifeguard: {
+          name: "Lifeguard Post",
+          cost: 70,
+          sellFactor: 0.7,
+          damage: 12,
+          range: 128,
+          fireRate: 0.48,
+          projectileSpeed: 360,
+          splash: 0,
+          color: "#ffd66b",
+          upgrades: [
+            { cost: 50, damage: 8, range: 14, fireRateMult: 0.9 },
+            { cost: 85, damage: 12, range: 18, fireRateMult: 0.86 },
+          ],
+        },
+        watercannon: {
+          name: "Water Cannon",
+          cost: 95,
+          sellFactor: 0.72,
+          damage: 21,
+          range: 116,
+          fireRate: 0.92,
+          projectileSpeed: 300,
+          splash: 36,
+          color: "#7ce1ff",
+          upgrades: [
+            { cost: 70, damage: 12, range: 10, fireRateMult: 0.91, splash: 7 },
+            { cost: 110, damage: 16, range: 14, fireRateMult: 0.86, splash: 9 },
+          ],
+        },
+        helicopter: {
+          name: "Coast Chopper",
+          cost: 135,
+          sellFactor: 0.74,
+          damage: 42,
+          range: 156,
+          fireRate: 1.38,
+          projectileSpeed: 420,
+          splash: 26,
+          color: "#ffb873",
+          upgrades: [
+            { cost: 110, damage: 20, range: 12, fireRateMult: 0.9, splash: 6 },
+            { cost: 165, damage: 28, range: 18, fireRateMult: 0.86, splash: 8 },
+          ],
+        },
+      };
+
+      const ENEMY_TYPES = {
+        crab: {
+          name: "Crab",
+          hp: 56,
+          speed: 44,
+          reward: 11,
+          damage: 1,
+          scale: 0.82,
+        },
+        squid: {
+          name: "Squid",
+          hp: 76,
+          speed: 51,
+          reward: 13,
+          damage: 1,
+          scale: 0.96,
+        },
+        shark: {
+          name: "Shark",
+          hp: 155,
+          speed: 36,
+          reward: 24,
+          damage: 2,
+          scale: 1.18,
+        },
+      };
+
+      const SPRITE_SVGS = {
+        tower_lifeguard: `
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <ellipse cx="64" cy="113" rx="39" ry="11" fill="#000" opacity=".18"/>
+  <rect x="58" y="44" width="12" height="62" rx="6" fill="#f5f9ff"/>
+  <rect x="53" y="70" width="22" height="7" rx="2" fill="#ffd166"/>
+  <rect x="34" y="81" width="60" height="10" rx="4" fill="#e8f2ff"/>
+  <rect x="38" y="87" width="52" height="6" rx="2" fill="#1a5f82" opacity=".38"/>
+  <path d="M22 48c8-17 24-27 42-27s34 10 42 27H22z" fill="#fefefe"/>
+  <path d="M64 21v27" stroke="#ffd166" stroke-width="4" stroke-linecap="round"/>
+  <path d="M30 48h16l6-20" fill="none" stroke="#ff6b6b" stroke-width="8" stroke-linecap="round"/>
+  <path d="M98 48H82l-6-20" fill="none" stroke="#ff6b6b" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="64" cy="20" r="6" fill="#ffd166"/>
+</svg>`,
+        tower_watercannon: `
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <ellipse cx="64" cy="112" rx="41" ry="11" fill="#000" opacity=".18"/>
+  <rect x="35" y="78" width="58" height="20" rx="9" fill="#2e6f8e"/>
+  <rect x="47" y="66" width="34" height="15" rx="7" fill="#95d6ef"/>
+  <rect x="54" y="45" width="20" height="25" rx="7" fill="#f9f6f2"/>
+  <rect x="57" y="25" width="14" height="26" rx="6" fill="#ff9f43"/>
+  <path d="M84 41c9 3 17 9 22 18" stroke="#d5f7ff" stroke-width="7" stroke-linecap="round"/>
+  <circle cx="108" cy="66" r="7" fill="#b9efff"/>
+  <circle cx="99" cy="59" r="5" fill="#d9f8ff"/>
+  <circle cx="90" cy="54" r="4" fill="#e8fbff"/>
+</svg>`,
+        tower_helicopter: `
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <ellipse cx="64" cy="112" rx="43" ry="10" fill="#000" opacity=".16"/>
+  <rect x="20" y="76" width="88" height="8" rx="4" fill="#27536f"/>
+  <path d="M24 64c0-12 10-22 22-22h25c9 0 20 4 29 14l10 10-15 13H47c-13 0-23-10-23-22z" fill="#ffcd6a"/>
+  <rect x="50" y="47" width="20" height="12" rx="4" fill="#86d7f2"/>
+  <circle cx="40" cy="69" r="10" fill="#2a4d63"/>
+  <circle cx="89" cy="69" r="10" fill="#2a4d63"/>
+  <rect x="58" y="33" width="12" height="11" rx="3" fill="#23445d"/>
+  <rect x="29" y="28" width="70" height="6" rx="3" fill="#23445d"/>
+</svg>`,
+        enemy_crab: `
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <ellipse cx="64" cy="110" rx="34" ry="10" fill="#000" opacity=".16"/>
+  <ellipse cx="64" cy="70" rx="36" ry="24" fill="#ff7a59"/>
+  <ellipse cx="64" cy="68" rx="24" ry="14" fill="#ff9b7b"/>
+  <circle cx="52" cy="56" r="4" fill="#fff"/>
+  <circle cx="76" cy="56" r="4" fill="#fff"/>
+  <circle cx="52" cy="56" r="2" fill="#1a2028"/>
+  <circle cx="76" cy="56" r="2" fill="#1a2028"/>
+  <path d="M24 71l-16 5m20 8l-16 10m92-23l16 5m-20 8l16 10" stroke="#e85d46" stroke-width="8" stroke-linecap="round"/>
+  <path d="M38 46l-17-10m69 10l17-10" stroke="#ff9a78" stroke-width="8" stroke-linecap="round"/>
+</svg>`,
+        enemy_squid: `
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <ellipse cx="64" cy="112" rx="27" ry="9" fill="#000" opacity=".16"/>
+  <path d="M64 18c26 0 40 17 36 39-2 14-10 26-20 36H48C38 83 30 71 28 57 24 35 38 18 64 18z" fill="#b97eff"/>
+  <path d="M52 89v27m12-27v29m12-29v27m-36-23v20m48-20v20" stroke="#8f5bd9" stroke-width="8" stroke-linecap="round"/>
+  <ellipse cx="51" cy="52" rx="6" ry="8" fill="#fff"/>
+  <ellipse cx="77" cy="52" rx="6" ry="8" fill="#fff"/>
+  <circle cx="51" cy="53" r="3" fill="#1f1f2a"/>
+  <circle cx="77" cy="53" r="3" fill="#1f1f2a"/>
+</svg>`,
+        enemy_shark: `
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <ellipse cx="64" cy="108" rx="38" ry="10" fill="#000" opacity=".16"/>
+  <path d="M14 71c8-19 33-34 63-34 16 0 28 4 39 12l-10 10 12 7-12 7 10 10c-11 8-23 12-39 12-30 0-55-15-63-34z" fill="#8db9cf"/>
+  <path d="M67 36l11-22 9 21" fill="#7da8bf"/>
+  <circle cx="48" cy="59" r="4" fill="#f6fdff"/>
+  <circle cx="48" cy="59" r="2" fill="#173042"/>
+  <path d="M38 73h34" stroke="#e7f7ff" stroke-width="5" stroke-linecap="round"/>
+  <path d="M45 75l5 8m9-8l5 8m9-8l5 8" stroke="#e7f7ff" stroke-width="3" stroke-linecap="round"/>
+</svg>`,
+        decor_lifeguardtower: `
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <ellipse cx="64" cy="113" rx="31" ry="9" fill="#000" opacity=".12"/>
+  <rect x="58" y="44" width="12" height="56" rx="5" fill="#f3f7ff"/>
+  <rect x="44" y="72" width="40" height="10" rx="4" fill="#ecf4ff"/>
+  <path d="M31 48c8-16 20-24 33-24s25 8 33 24H31z" fill="#fff"/>
+  <path d="M40 48h16l6-18m26 18H72l-6-18" fill="none" stroke="#ff6f6f" stroke-width="7" stroke-linecap="round"/>
+</svg>`,
+        decor_beachgrass: `
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <path d="M63 112c-5-21-1-38 7-55M63 112c2-20 10-36 22-50M63 112c-1-19-8-34-21-49M63 112c6-15 18-28 34-38M63 112c-7-15-21-27-35-37" fill="none" stroke="#6aa35f" stroke-width="7" stroke-linecap="round"/>
+  <path d="M63 112c-4-15-2-31 4-46M63 112c2-16 8-30 17-42M63 112c-3-15-9-27-17-40" fill="none" stroke="#85bb76" stroke-width="5" stroke-linecap="round"/>
+</svg>`,
+        decor_palmcluster: `
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <path d="M60 112c6-29 8-50 5-72m18 72c2-22 0-41-5-59" fill="none" stroke="#7f5c31" stroke-width="8" stroke-linecap="round"/>
+  <path d="M66 42c15-13 29-15 45-8M66 42c16 0 30 5 43 17M66 42c-6-17-6-31 2-43M66 42c-16-8-30-10-43-5M66 42c-16 2-30 10-41 24" fill="none" stroke="#5f9860" stroke-width="9" stroke-linecap="round"/>
+  <path d="M79 55c10-11 23-13 36-8M79 55c10 1 20 5 30 13M79 55c-5-12-5-22 0-32M79 55c-10-6-20-8-31-5" fill="none" stroke="#7db772" stroke-width="6" stroke-linecap="round"/>
+</svg>`,
+        decor_umbrella: `
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <ellipse cx="64" cy="112" rx="26" ry="8" fill="#000" opacity=".1"/>
+  <path d="M64 22c23 0 40 15 44 35H20c4-20 21-35 44-35z" fill="#ff8a78"/>
+  <path d="M64 22c11 0 21 4 29 11l-29 24V22z" fill="#ffd166" opacity=".9"/>
+  <path d="M64 22c-11 0-21 4-29 11l29 24V22z" fill="#8ed8f5" opacity=".95"/>
+  <rect x="61" y="56" width="6" height="45" rx="3" fill="#735437"/>
+</svg>`,
+        decor_rock: `
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <ellipse cx="64" cy="112" rx="30" ry="8" fill="#000" opacity=".08"/>
+  <path d="M27 84c0-18 15-33 33-33 11 0 22 5 29 14 9 1 17 9 17 19 0 11-9 20-20 20H47c-11 0-20-9-20-20z" fill="#b4a28d"/>
+  <path d="M58 64h16m-29 14h38m-26 13h20" stroke="#8c7b67" stroke-width="4" stroke-linecap="round"/>
+</svg>`,
+      };
+
+      const app = {
+        canvas: document.getElementById("gameCanvas"),
+        ctx: null,
+        width: 0,
+        height: 0,
+        dpr: window.devicePixelRatio || 1,
+
+        path: [],
+        pathControl: [],
+        pathLengths: [],
+        pathTotalLength: 0,
+        buildSpots: [],
+        scenery: [],
+
+        sprites: {},
+
+        state: "intro",
+        paused: false,
+        wave: 1,
+        cash: CONFIG.initialCash,
+        lives: CONFIG.initialLives,
+        kills: 0,
+        selectedTowerType: null,
+        selectedTowerId: null,
+        waveActive: false,
+        spawnTimer: 0,
+        spawnQueue: [],
+        waveCooldown: 0,
+        birdSpawnTimer: 0,
+        birdsRemainingInWave: 0,
+        timeScale: 1,
+        isFastForward: false,
+
+        towers: [],
+        enemies: [],
+        birds: [],
+        projectiles: [],
+        particles: [],
+
+        nextTowerId: 0,
+        nextEnemyId: 0,
+
+        clock: 0,
+        lastFrame: performance.now(),
+      };
+
+      const ui = {
+        overlay: document.getElementById("overlay"),
+        waveValue: document.getElementById("waveValue"),
+        cashValue: document.getElementById("cashValue"),
+        livesValue: document.getElementById("livesValue"),
+        killsValue: document.getElementById("killsValue"),
+        stateValue: document.getElementById("stateValue"),
+        status: document.getElementById("status"),
+        startGameBtn: document.getElementById("startGameBtn"),
+        startWaveBtn: document.getElementById("startWaveBtn"),
+        fastBtn: document.getElementById("fastBtn"),
+        pauseBtn: document.getElementById("pauseBtn"),
+        upgradeBtn: document.getElementById("upgradeBtn"),
+        restartBtn: document.getElementById("restartBtn"),
+        towerButtons: Array.from(document.querySelectorAll(".tower-btn")),
+      };
+
+      function loadSprites() {
+        for (const [key, svg] of Object.entries(SPRITE_SVGS)) {
+          const img = new Image();
+          img.decoding = "async";
+          img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+          app.sprites[key] = img;
+        }
+      }
+
+      function getSprite(key) {
+        const img = app.sprites[key];
+        return img && img.complete ? img : null;
+      }
+
+      function resizeCanvas() {
+        const rect = app.canvas.getBoundingClientRect();
+        app.width = Math.max(320, Math.floor(rect.width));
+        app.height = Math.max(280, Math.floor(rect.height));
+        app.dpr = window.devicePixelRatio || 1;
+        app.canvas.width = Math.floor(app.width * app.dpr);
+        app.canvas.height = Math.floor(app.height * app.dpr);
+        app.ctx = app.canvas.getContext("2d");
+        app.ctx.setTransform(app.dpr, 0, 0, app.dpr, 0, 0);
+        buildMapGeometry();
+      }
+
+      function catmullRom(p0, p1, p2, p3, t) {
+        const t2 = t * t;
+        const t3 = t2 * t;
+        return {
+          x: 0.5 * ((2 * p1.x) + (-p0.x + p2.x) * t + (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t2 + (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t3),
+          y: 0.5 * ((2 * p1.y) + (-p0.y + p2.y) * t + (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t2 + (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t3),
+        };
+      }
+
+      function sampleCurvePath(points, samplesPerSegment = 14) {
+        if (points.length < 2) return points.slice();
+        const out = [];
+        const padded = [points[0], ...points, points[points.length - 1]];
+
+        for (let i = 0; i < points.length - 1; i += 1) {
+          const p0 = padded[i];
+          const p1 = padded[i + 1];
+          const p2 = padded[i + 2];
+          const p3 = padded[i + 3];
+          for (let s = 0; s < samplesPerSegment; s += 1) {
+            out.push(catmullRom(p0, p1, p2, p3, s / samplesPerSegment));
+          }
+        }
+
+        out.push(points[points.length - 1]);
+        return out;
+      }
+
+      function distancePointToSegment(px, py, ax, ay, bx, by) {
+        const dx = bx - ax;
+        const dy = by - ay;
+        const lenSq = dx * dx + dy * dy || 1;
+        const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / lenSq));
+        const cx = ax + dx * t;
+        const cy = ay + dy * t;
+        return Math.hypot(px - cx, py - cy);
+      }
+
+      function minDistanceToPolyline(px, py, polyline) {
+        let best = Infinity;
+        for (let i = 1; i < polyline.length; i += 1) {
+          const a = polyline[i - 1];
+          const b = polyline[i];
+          const d = distancePointToSegment(px, py, a.x, a.y, b.x, b.y);
+          if (d < best) best = d;
+        }
+        return best;
+      }
+
+      function generateBuildSpots(w, h) {
+        const candidatesNorm = [
+          [0.08, 0.2], [0.12, 0.38], [0.11, 0.58], [0.13, 0.78],
+          [0.2, 0.26], [0.22, 0.52], [0.23, 0.7], [0.29, 0.16], [0.31, 0.42], [0.31, 0.83],
+          [0.41, 0.18], [0.42, 0.57], [0.46, 0.74], [0.52, 0.16], [0.53, 0.61], [0.57, 0.81],
+          [0.65, 0.2], [0.66, 0.43], [0.69, 0.67], [0.73, 0.84], [0.78, 0.2], [0.81, 0.62], [0.86, 0.79], [0.9, 0.5],
+        ];
+        const candidates = candidatesNorm.map((p) => ({ x: p[0] * w, y: p[1] * h }));
+
+        const minFromLane = Math.max(34, w * 0.075);
+        const maxFromLane = Math.min(92, w * 0.18);
+        const minBetween = Math.max(58, w * 0.115);
+
+        const picked = [];
+        for (const point of candidates) {
+          const laneDist = minDistanceToPolyline(point.x, point.y, app.path);
+          if (laneDist < minFromLane || laneDist > maxFromLane) continue;
+          if (point.x < 30 || point.x > w - 30 || point.y < 26 || point.y > h - 22) continue;
+          if (picked.some((other) => Math.hypot(other.x - point.x, other.y - point.y) < minBetween)) continue;
+          picked.push(point);
+          if (picked.length >= 11) break;
+        }
+
+        if (picked.length < 11) {
+          for (const point of candidates) {
+            if (picked.length >= 11) break;
+            const laneDist = minDistanceToPolyline(point.x, point.y, app.path);
+            if (laneDist < minFromLane * 0.86 || laneDist > maxFromLane * 1.22) continue;
+            if (picked.some((other) => Math.hypot(other.x - point.x, other.y - point.y) < minBetween * 0.82)) continue;
+            picked.push(point);
+          }
+        }
+
+        if (picked.length < 11) {
+          for (let gx = 50; gx < w - 40 && picked.length < 11; gx += 46) {
+            for (let gy = 36; gy < h - 28 && picked.length < 11; gy += 44) {
+              const laneDist = minDistanceToPolyline(gx, gy, app.path);
+              if (laneDist < minFromLane * 0.8 || laneDist > maxFromLane * 1.3) continue;
+              if (picked.some((other) => Math.hypot(other.x - gx, other.y - gy) < minBetween * 0.72)) continue;
+              picked.push({ x: gx, y: gy });
+            }
+          }
+        }
+
+        return picked;
+      }
+
+      function generateScenery(w, h, buildSpots) {
+        const raw = [
+          { type: "decor_lifeguardtower", x: 0.06, y: 0.12, size: 52, rot: -0.06, alpha: 0.46 },
+          { type: "decor_beachgrass", x: 0.18, y: 0.13, size: 38, rot: 0.15, alpha: 0.48 },
+          { type: "decor_beachgrass", x: 0.32, y: 0.08, size: 34, rot: -0.14, alpha: 0.44 },
+          { type: "decor_umbrella", x: 0.47, y: 0.11, size: 42, rot: 0.08, alpha: 0.42 },
+          { type: "decor_rock", x: 0.62, y: 0.1, size: 36, rot: -0.11, alpha: 0.4 },
+          { type: "decor_palmcluster", x: 0.84, y: 0.12, size: 58, rot: 0.13, alpha: 0.43 },
+          { type: "decor_beachgrass", x: 0.94, y: 0.3, size: 34, rot: -0.2, alpha: 0.45 },
+          { type: "decor_rock", x: 0.07, y: 0.9, size: 40, rot: 0.1, alpha: 0.37 },
+          { type: "decor_beachgrass", x: 0.21, y: 0.9, size: 38, rot: -0.2, alpha: 0.43 },
+          { type: "decor_palmcluster", x: 0.39, y: 0.91, size: 60, rot: 0.05, alpha: 0.4 },
+          { type: "decor_umbrella", x: 0.58, y: 0.9, size: 40, rot: -0.08, alpha: 0.37 },
+          { type: "decor_beachgrass", x: 0.73, y: 0.91, size: 38, rot: 0.08, alpha: 0.44 },
+          { type: "decor_rock", x: 0.91, y: 0.88, size: 42, rot: 0.12, alpha: 0.36 },
+        ];
+
+        const minToLane = Math.max(56, w * 0.11);
+        const minToPad = Math.max(34, w * 0.06);
+        return raw
+          .map((item) => ({
+            ...item,
+            x: item.x * w,
+            y: item.y * h,
+            size: item.size * Math.min(1.15, Math.max(0.78, w / 420)),
+          }))
+          .filter((item) => {
+            if (minDistanceToPolyline(item.x, item.y, app.path) < minToLane) return false;
+            if (buildSpots.some((spot) => Math.hypot(spot.x - item.x, spot.y - item.y) < minToPad + spot.radius)) return false;
+            return true;
+          });
+      }
+
+      function buildMapGeometry() {
+        const w = app.width;
+        const h = app.height;
+
+        app.pathControl = [
+          { x: -30, y: h * 0.79 },
+          { x: w * 0.12, y: h * 0.82 },
+          { x: w * 0.24, y: h * 0.74 },
+          { x: w * 0.28, y: h * 0.56 },
+          { x: w * 0.16, y: h * 0.4 },
+          { x: w * 0.34, y: h * 0.28 },
+          { x: w * 0.53, y: h * 0.39 },
+          { x: w * 0.64, y: h * 0.53 },
+          { x: w * 0.79, y: h * 0.45 },
+          { x: w * 0.88, y: h * 0.28 },
+          { x: w + 22, y: h * 0.2 },
+        ];
+        app.path = sampleCurvePath(app.pathControl, 16);
+
+        app.pathLengths = [0];
+        let total = 0;
+        for (let i = 1; i < app.path.length; i += 1) {
+          const a = app.path[i - 1];
+          const b = app.path[i];
+          total += Math.hypot(b.x - a.x, b.y - a.y);
+          app.pathLengths.push(total);
+        }
+        app.pathTotalLength = total;
+
+        const spots = generateBuildSpots(w, h);
+        app.buildSpots = spots.map((spot, index) => {
+          const existingTower = app.towers.find((tower) => tower.spotIndex === index);
+          return {
+            id: index,
+            x: spot.x,
+            y: spot.y,
+            radius: Math.max(22, Math.min(30, w * 0.052)),
+            towerId: existingTower ? existingTower.id : null,
+          };
+        });
+        app.scenery = generateScenery(w, h, app.buildSpots);
+
+        for (const tower of app.towers) {
+          const spot = app.buildSpots.find((s) => s.id === tower.spotIndex);
+          if (spot) {
+            tower.x = spot.x;
+            tower.y = spot.y;
+            spot.towerId = tower.id;
+          }
+        }
+      }
+
+      function setStatus(message, tone = "") {
+        ui.status.textContent = message;
+        ui.status.className = tone ? `status ${tone}` : "status";
+      }
+
+      function updateHud() {
+        ui.waveValue.textContent = String(app.wave);
+        ui.cashValue.textContent = String(Math.floor(app.cash));
+        ui.livesValue.textContent = String(Math.max(0, app.lives));
+        ui.killsValue.textContent = String(app.kills);
+
+        let stateText = "Build";
+        if (app.state === "intro") {
+          stateText = "Ready";
+        } else if (app.paused) {
+          stateText = "Paused";
+        } else if (app.waveActive) {
+          stateText = "Battle";
+        }
+
+        if (app.isFastForward && app.state === "playing" && !app.paused) {
+          stateText += " x2";
+        }
+        ui.stateValue.textContent = stateText;
+      }
+
+      function spawnSeagull() {
+        const y = app.height * (0.14 + Math.random() * 0.54);
+        const startX = app.width + 38;
+        const endX = -40;
+        const speed = 62 + Math.random() * 40;
+        const dropX = app.width * (0.14 + Math.random() * 0.74);
+        const dropY = app.height * (0.16 + Math.random() * 0.7);
+
+        app.birds.push({
+          x: startX,
+          y,
+          vx: -speed,
+          endX,
+          dropX,
+          dropY,
+          dropped: false,
+          wingSeed: Math.random() * Math.PI * 2,
+        });
+      }
+
+      function bombStrike(x, y) {
+        const radius = CONFIG.birdBombRadius;
+        app.particles.push({ x, y, color: "#fff4c4", size: 11, life: 0.38, vy: -6 });
+        app.particles.push({ x, y, color: "#ffd191", size: radius * 0.55, life: 0.2, vy: 0 });
+
+        for (const enemy of app.enemies) {
+          const dist = Math.hypot(enemy.x - x, enemy.y - y);
+          if (dist <= radius) {
+            const falloff = Math.max(0.35, 1 - dist / (radius + 1));
+            applyDamage(enemy, CONFIG.birdBombDamage * falloff);
+          }
+        }
+      }
+
+      function updateFastButton() {
+        const label = ui.fastBtn.querySelector(".speed-label");
+        if (label) label.textContent = app.isFastForward ? "x2" : "x1";
+        ui.fastBtn.classList.toggle("fast-on", app.isFastForward);
+      }
+
+      function makeEnemyPathPosition(distance) {
+        if (distance <= 0) return { x: app.path[0].x, y: app.path[0].y };
+        if (distance >= app.pathTotalLength) {
+          const last = app.path[app.path.length - 1];
+          return { x: last.x, y: last.y };
+        }
+
+        let seg = 1;
+        while (seg < app.pathLengths.length && app.pathLengths[seg] < distance) {
+          seg += 1;
+        }
+
+        const a = app.path[seg - 1];
+        const b = app.path[seg];
+        const prevLen = app.pathLengths[seg - 1];
+        const segLen = app.pathLengths[seg] - prevLen;
+        const t = segLen > 0 ? (distance - prevLen) / segLen : 0;
+        return {
+          x: a.x + (b.x - a.x) * t,
+          y: a.y + (b.y - a.y) * t,
+        };
+      }
+
+      function buildWaveDefinition(waveIndex) {
+        const baseCount = 8 + waveIndex * 2;
+        const entries = [];
+        for (let i = 0; i < baseCount; i += 1) {
+          let type = "crab";
+          if (waveIndex >= 3 && i % 3 === 0) type = "squid";
+          if (waveIndex >= 6 && i % 5 === 0) type = "shark";
+          if (waveIndex >= 10 && i % 2 === 0) type = i % 4 === 0 ? "shark" : "squid";
+
+          const delay = Math.max(0.2, 0.62 - waveIndex * 0.03) + Math.random() * 0.14;
+          entries.push({ type, delay });
+        }
+
+        if (waveIndex % 3 === 0) entries.push({ type: "shark", delay: 0.74 });
+        return entries;
+      }
+
+      function spawnEnemy(typeKey, waveNumber) {
+        const base = ENEMY_TYPES[typeKey];
+        const hpScale = 1 + waveNumber * 0.19;
+        const speedScale = 1 + Math.min(0.45, waveNumber * 0.025);
+        const hp = Math.floor(base.hp * hpScale);
+        const speed = base.speed * speedScale;
+        const pos = makeEnemyPathPosition(0);
+
+        app.enemies.push({
+          id: app.nextEnemyId += 1,
+          type: typeKey,
+          maxHp: hp,
+          hp,
+          speed,
+          reward: Math.floor(base.reward * (1 + waveNumber * 0.06)),
+          contactDamage: base.damage,
+          scale: base.scale,
+          distance: 0,
+          x: pos.x,
+          y: pos.y,
+          heading: 0,
+          wobbleSeed: Math.random() * Math.PI * 2,
+          hitFlash: 0,
+        });
+      }
+
+      function startWave() {
+        if (app.state !== "playing") return;
+        if (app.waveActive) {
+          setStatus("Wave already in progress.", "warn");
+          return;
+        }
+
+        app.spawnQueue = buildWaveDefinition(app.wave);
+        app.spawnTimer = 0.5;
+        app.waveActive = true;
+        app.waveCooldown = 0;
+        app.birdsRemainingInWave = CONFIG.birdsPerWave;
+        app.birdSpawnTimer = 1.6 + Math.random() * 1.4;
+
+        setStatus(`Wave ${app.wave} underway. Seagull support incoming.`, "ok");
+        updateHud();
+      }
+
+      function placeTower(typeKey, spot) {
+        const blueprint = TOWER_STATS[typeKey];
+        if (!blueprint) return;
+        if (spot.towerId) {
+          setStatus("That build pad is occupied.", "warn");
+          return;
+        }
+        if (app.cash < blueprint.cost) {
+          setStatus("Not enough funds for that tower.", "err");
+          return;
+        }
+
+        app.cash -= blueprint.cost;
+        const tower = {
+          id: app.nextTowerId += 1,
+          type: typeKey,
+          x: spot.x,
+          y: spot.y,
+          spotIndex: spot.id,
+          level: 1,
+          totalSpent: blueprint.cost,
+          damage: blueprint.damage,
+          range: blueprint.range,
+          fireRate: blueprint.fireRate,
+          projectileSpeed: blueprint.projectileSpeed,
+          splash: blueprint.splash,
+          cooldown: 0,
+          angle: 0,
+        };
+
+        app.towers.push(tower);
+        spot.towerId = tower.id;
+        app.selectedTowerId = tower.id;
+
+        setStatus(`${blueprint.name} deployed. Tap it to upgrade or sell.`, "ok");
+        updateHud();
+      }
+
+      function upgradeTower(tower) {
+        const blueprint = TOWER_STATS[tower.type];
+        if (!blueprint) return;
+
+        const step = blueprint.upgrades[tower.level - 1];
+        if (!step) {
+          setStatus("Tower is already max level.", "warn");
+          return;
+        }
+        if (app.cash < step.cost) {
+          setStatus("Not enough funds to upgrade.", "err");
+          return;
+        }
+
+        app.cash -= step.cost;
+        tower.level += 1;
+        tower.totalSpent += step.cost;
+        tower.damage += step.damage;
+        tower.range += step.range;
+        tower.fireRate *= step.fireRateMult;
+        if (step.splash) tower.splash += step.splash;
+
+        setStatus(`${blueprint.name} upgraded to level ${tower.level}.`, "ok");
+        updateHud();
+      }
+
+      function sellTower(tower) {
+        const blueprint = TOWER_STATS[tower.type];
+        if (!blueprint) return;
+
+        const refund = Math.floor(tower.totalSpent * blueprint.sellFactor);
+        app.cash += refund;
+        app.towers = app.towers.filter((t) => t.id !== tower.id);
+
+        const spot = app.buildSpots.find((s) => s.id === tower.spotIndex);
+        if (spot) spot.towerId = null;
+
+        if (app.selectedTowerId === tower.id) app.selectedTowerId = null;
+
+        setStatus(`Sold ${blueprint.name} for $${refund}.`, "warn");
+        updateHud();
+      }
+
+      function findTowerById(id) {
+        return app.towers.find((tower) => tower.id === id) || null;
+      }
+
+      function handleCanvasTap(clientX, clientY) {
+        if (app.state !== "playing") return;
+
+        const rect = app.canvas.getBoundingClientRect();
+        const x = clientX - rect.left;
+        const y = clientY - rect.top;
+
+        const tappedTower = app.towers.find((tower) => Math.hypot(tower.x - x, tower.y - y) <= 24);
+        if (tappedTower) {
+          if (app.selectedTowerType) {
+            app.selectedTowerType = null;
+            syncTowerButtonStates();
+          }
+
+          if (app.selectedTowerId === tappedTower.id) {
+            sellTower(tappedTower);
+          } else {
+            app.selectedTowerId = tappedTower.id;
+            const blueprint = TOWER_STATS[tappedTower.type];
+            const next = blueprint.upgrades[tappedTower.level - 1];
+            if (next) {
+              setStatus(
+                `${blueprint.name} Lv${tappedTower.level} selected. Tap Upgrade to level up, or tap again to sell ($${Math.floor(tappedTower.totalSpent * blueprint.sellFactor)}). Upgrade: $${next.cost}.`,
+                ""
+              );
+            } else {
+              setStatus(`${blueprint.name} Lv${tappedTower.level} selected. Tap again to sell for $${Math.floor(tappedTower.totalSpent * blueprint.sellFactor)}.`, "");
+            }
+          }
+          return;
+        }
+
+        if (!app.selectedTowerType) {
+          setStatus("Select a tower first.", "warn");
+          return;
+        }
+
+        const spot = app.buildSpots.find((buildSpot) => Math.hypot(buildSpot.x - x, buildSpot.y - y) <= buildSpot.radius);
+        if (!spot) {
+          setStatus("You can only build on sandy pads.", "warn");
+          return;
+        }
+
+        placeTower(app.selectedTowerType, spot);
+      }
+
+      function pickTargetForTower(tower) {
+        let best = null;
+        let bestProgress = -1;
+
+        for (const enemy of app.enemies) {
+          const dist = Math.hypot(enemy.x - tower.x, enemy.y - tower.y);
+          if (dist <= tower.range && enemy.distance > bestProgress) {
+            best = enemy;
+            bestProgress = enemy.distance;
+          }
+        }
+
+        return best;
+      }
+
+      function fireTower(tower, target) {
+        const dx = target.x - tower.x;
+        const dy = target.y - tower.y;
+        const len = Math.hypot(dx, dy) || 1;
+
+        tower.angle = Math.atan2(dy, dx);
+        tower.cooldown = tower.fireRate;
+
+        app.projectiles.push({
+          x: tower.x,
+          y: tower.y,
+          vx: (dx / len) * tower.projectileSpeed,
+          vy: (dy / len) * tower.projectileSpeed,
+          damage: tower.damage,
+          splash: tower.splash,
+          color: TOWER_STATS[tower.type].color,
+          life: 1.6,
+        });
+      }
+
+      function applyDamage(enemy, amount) {
+        enemy.hp -= amount;
+        enemy.hitFlash = 0.08;
+
+        if (enemy.hp <= 0) {
+          app.cash += enemy.reward;
+          app.kills += 1;
+          app.particles.push({ x: enemy.x, y: enemy.y, color: "#dffaff", size: 5, life: 0.28, vy: -24 });
+          return true;
+        }
+
+        return false;
+      }
+
+      function explodeProjectile(projectile, impactX, impactY) {
+        if (projectile.splash <= 0) return;
+
+        for (const enemy of app.enemies) {
+          const dist = Math.hypot(enemy.x - impactX, enemy.y - impactY);
+          if (dist <= projectile.splash) {
+            const falloff = Math.max(0.3, 1 - dist / (projectile.splash + 1));
+            applyDamage(enemy, projectile.damage * falloff);
+          }
+        }
+      }
+
+      function updateGame(dt) {
+        if (app.state !== "playing" || app.paused) return;
+
+        app.clock += dt;
+
+        if (app.waveActive) {
+          app.spawnTimer -= dt;
+          if (app.spawnTimer <= 0 && app.spawnQueue.length > 0) {
+            const next = app.spawnQueue.shift();
+            spawnEnemy(next.type, app.wave);
+            app.spawnTimer = next.delay;
+          }
+
+          if (app.birdsRemainingInWave > 0) {
+            app.birdSpawnTimer -= dt;
+            if (app.birdSpawnTimer <= 0) {
+              spawnSeagull();
+              app.birdsRemainingInWave -= 1;
+              app.birdSpawnTimer = 2.8 + Math.random() * 4.8;
+            }
+          }
+
+          if (app.spawnQueue.length === 0 && app.enemies.length === 0) {
+            app.waveActive = false;
+            if (app.wave >= CONFIG.maxWaves) {
+              showEndOverlay(true);
+              return;
+            }
+
+            let clearBonus = CONFIG.waveClearBonusBase + app.wave * CONFIG.waveClearBonusGrowth;
+            app.cash += clearBonus;
+
+            app.wave += 1;
+            app.waveCooldown = CONFIG.waveGapMs / 1000;
+            setStatus(`Wave cleared! +$${clearBonus} bonus. Prepare for wave ${app.wave}.`, "ok");
+            updateHud();
+          }
+        } else if (app.waveCooldown > 0) {
+          app.waveCooldown -= dt;
+          if (app.waveCooldown <= 0) {
+            setStatus(`Wave ${app.wave} ready. Press Start Wave when prepared.`, "");
+          }
+        }
+
+        for (const tower of app.towers) {
+          tower.cooldown -= dt;
+          if (tower.cooldown <= 0) {
+            const target = pickTargetForTower(tower);
+            if (target) fireTower(tower, target);
+          }
+        }
+
+        for (const enemy of app.enemies) {
+          const previousPos = makeEnemyPathPosition(enemy.distance);
+          enemy.distance += enemy.speed * dt;
+          const pos = makeEnemyPathPosition(enemy.distance);
+          enemy.heading = Math.atan2(pos.y - previousPos.y, pos.x - previousPos.x);
+          enemy.x = pos.x;
+          enemy.y = pos.y;
+          enemy.hitFlash = Math.max(0, enemy.hitFlash - dt);
+        }
+
+        for (const bird of app.birds) {
+          bird.x += bird.vx * dt;
+          if (!bird.dropped && bird.x <= bird.dropX) {
+            bird.dropped = true;
+            bombStrike(bird.dropX, bird.dropY);
+          }
+        }
+        app.birds = app.birds.filter((bird) => bird.x > bird.endX);
+
+        for (const projectile of app.projectiles) {
+          projectile.x += projectile.vx * dt;
+          projectile.y += projectile.vy * dt;
+          projectile.life -= dt;
+
+          let hit = false;
+          for (const enemy of app.enemies) {
+            if (Math.hypot(enemy.x - projectile.x, enemy.y - projectile.y) <= 13 * enemy.scale) {
+              applyDamage(enemy, projectile.damage);
+              explodeProjectile(projectile, enemy.x, enemy.y);
+              hit = true;
+              break;
+            }
+          }
+
+          if (hit) {
+            projectile.life = 0;
+            app.particles.push({ x: projectile.x, y: projectile.y, color: projectile.color, size: 4, life: 0.22, vy: -10 });
+          }
+        }
+
+        app.enemies = app.enemies.filter((enemy) => {
+          if (enemy.hp <= 0) return false;
+          if (enemy.distance >= app.pathTotalLength) {
+            app.lives -= enemy.contactDamage;
+            app.particles.push({ x: enemy.x, y: enemy.y, color: "#ffb0b0", size: 6, life: 0.33, vy: -20 });
+            return false;
+          }
+          return true;
+        });
+
+        app.projectiles = app.projectiles.filter((projectile) => projectile.life > 0);
+
+        for (const particle of app.particles) {
+          particle.life -= dt;
+          particle.y += particle.vy * dt;
+          particle.vy += 30 * dt;
+        }
+        app.particles = app.particles.filter((particle) => particle.life > 0);
+
+        if (app.lives <= 0) {
+          showEndOverlay(false);
+          return;
+        }
+
+        updateHud();
+      }
+
+      function drawBeachBackground(ctx) {
+        const w = app.width;
+        const h = app.height;
+        const t = app.clock;
+        const sandGrad = ctx.createLinearGradient(0, 0, w, h);
+        sandGrad.addColorStop(0, "#efd095");
+        sandGrad.addColorStop(1, "#dfb774");
+        ctx.fillStyle = sandGrad;
+        ctx.fillRect(0, 0, w, h);
+
+        const wetSand = ctx.createRadialGradient(w * 0.4, h * 0.45, 18, w * 0.5, h * 0.5, w * 0.58);
+        wetSand.addColorStop(0, "rgba(181, 147, 95, 0.18)");
+        wetSand.addColorStop(1, "rgba(181, 147, 95, 0)");
+        ctx.fillStyle = wetSand;
+        ctx.fillRect(0, 0, w, h);
+
+        for (let i = 0; i < 130; i += 1) {
+          const x = ((i * 73) % w) + Math.sin(t + i) * 1.3;
+          const y = ((i * 47) % h) + Math.cos(t * 0.6 + i) * 1.2;
+          ctx.fillStyle = i % 2 ? "rgba(154,117,72,0.08)" : "rgba(255,244,220,0.1)";
+          ctx.fillRect(x, y, 2, 2);
+        }
+
+        const tidePools = [
+          [0.12, 0.28, 0.12, 0.08],
+          [0.84, 0.74, 0.11, 0.08],
+          [0.92, 0.34, 0.09, 0.07],
+          [0.06, 0.82, 0.08, 0.06],
+        ];
+        for (const pool of tidePools) {
+          const cx = pool[0] * w;
+          const cy = pool[1] * h;
+          const rx = pool[2] * w;
+          const ry = pool[3] * h;
+          ctx.save();
+          ctx.translate(cx, cy);
+          ctx.rotate(Math.sin(cx * 0.003 + cy * 0.01) * 0.25);
+          const poolGrad = ctx.createRadialGradient(0, 0, 4, 0, 0, Math.max(rx, ry));
+          poolGrad.addColorStop(0, "rgba(170, 230, 245, 0.34)");
+          poolGrad.addColorStop(1, "rgba(79, 170, 196, 0.08)");
+          ctx.fillStyle = poolGrad;
+          ctx.beginPath();
+          ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+
+        ctx.save();
+        ctx.globalAlpha = 0.16;
+        for (let y = 8; y < h; y += 18) {
+          ctx.beginPath();
+          for (let x = 0; x <= w; x += 20) {
+            const wave = Math.sin((x * 0.028) + (y * 0.04) + t * 1.8) * 1.8;
+            if (x === 0) ctx.moveTo(x, y + wave);
+            else ctx.lineTo(x, y + wave);
+          }
+          ctx.strokeStyle = "#f7e5be";
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      function tracePath(ctx, points) {
+        ctx.beginPath();
+        ctx.moveTo(points[0].x, points[0].y);
+        for (let i = 1; i < points.length; i += 1) {
+          ctx.lineTo(points[i].x, points[i].y);
+        }
+      }
+
+      function drawPath(ctx) {
+        ctx.save();
+
+        tracePath(ctx, app.path);
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.lineWidth = 40;
+        ctx.strokeStyle = "rgba(223, 245, 255, 0.54)";
+        ctx.stroke();
+
+        tracePath(ctx, app.path);
+        ctx.lineWidth = 28;
+        const innerGrad = ctx.createLinearGradient(0, app.height * 0.82, 0, app.height * 0.2);
+        innerGrad.addColorStop(0, "rgba(107, 208, 230, 0.9)");
+        innerGrad.addColorStop(1, "rgba(191, 245, 255, 0.82)");
+        ctx.strokeStyle = innerGrad;
+        ctx.stroke();
+
+        ctx.globalAlpha = 0.35;
+        tracePath(ctx, app.path);
+        ctx.lineWidth = 7;
+        ctx.setLineDash([7, 12]);
+        ctx.lineDashOffset = -app.clock * 34;
+        ctx.strokeStyle = "#ffffff";
+        ctx.stroke();
+
+        ctx.restore();
+      }
+
+      function drawScenery(ctx) {
+        for (const item of app.scenery) {
+          const sprite = getSprite(item.type);
+          if (!sprite) continue;
+          ctx.save();
+          ctx.globalAlpha = item.alpha;
+          ctx.translate(item.x, item.y);
+          ctx.rotate(item.rot + Math.sin(app.clock * 0.45 + item.x * 0.01) * 0.03);
+          ctx.drawImage(sprite, -item.size / 2, -item.size / 2, item.size, item.size);
+          ctx.restore();
+        }
+      }
+
+      function drawBuildSpots(ctx) {
+        for (const spot of app.buildSpots) {
+          const occupied = Boolean(spot.towerId);
+          ctx.save();
+          ctx.translate(spot.x, spot.y);
+
+          ctx.fillStyle = occupied ? "rgba(135, 108, 62, 0.64)" : "rgba(244, 215, 159, 0.78)";
+          ctx.beginPath();
+          ctx.ellipse(0, 0, spot.radius + 3, spot.radius * 0.75, -0.3, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.strokeStyle = occupied ? "rgba(255,255,255,0.15)" : "rgba(255, 247, 221, 0.55)";
+          ctx.lineWidth = 2;
+          ctx.stroke();
+
+          if (!occupied) {
+            ctx.strokeStyle = "rgba(255,255,255,0.35)";
+            ctx.lineWidth = 1.6;
+            ctx.beginPath();
+            ctx.moveTo(-7, 0);
+            ctx.lineTo(7, 0);
+            ctx.moveTo(0, -7);
+            ctx.lineTo(0, 7);
+            ctx.stroke();
+          }
+
+          ctx.restore();
+        }
+      }
+
+      function drawBirds(ctx) {
+        for (const bird of app.birds) {
+          const flap = Math.sin(app.clock * 16 + bird.wingSeed) * 3.5;
+          ctx.save();
+          ctx.translate(bird.x, bird.y);
+          ctx.strokeStyle = "rgba(48, 66, 82, 0.85)";
+          ctx.lineWidth = 2;
+          ctx.lineCap = "round";
+          ctx.beginPath();
+          ctx.moveTo(-8, 0);
+          ctx.quadraticCurveTo(-2, -5 - flap, 2, 0);
+          ctx.quadraticCurveTo(6, -5 - flap, 12, 0);
+          ctx.stroke();
+
+          if (!bird.dropped) {
+            ctx.fillStyle = "rgba(245, 121, 82, 0.85)";
+            ctx.beginPath();
+            ctx.arc(-2, 8, 2.4, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.restore();
+        }
+      }
+
+      function drawTower(ctx, tower) {
+        const blueprint = TOWER_STATS[tower.type];
+        const selected = app.selectedTowerId === tower.id;
+
+        if (selected) {
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(tower.x, tower.y, tower.range, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(210, 250, 255, 0.1)";
+          ctx.fill();
+          ctx.strokeStyle = "rgba(210, 250, 255, 0.33)";
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        const sprite = getSprite(`tower_${tower.type}`);
+        const size = 56 + tower.level * 4;
+
+        ctx.save();
+        ctx.translate(tower.x, tower.y + 2);
+        ctx.fillStyle = "rgba(7, 20, 26, 0.35)";
+        ctx.beginPath();
+        ctx.ellipse(0, 13, 18, 7, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        if (sprite) {
+          ctx.drawImage(sprite, -size / 2, -size / 2, size, size);
+        } else {
+          ctx.fillStyle = "#204353";
+          ctx.beginPath();
+          ctx.arc(0, 0, 16, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        if (tower.type !== "helicopter") {
+          ctx.rotate(tower.angle);
+          ctx.fillStyle = blueprint.color;
+          ctx.fillRect(-2, -3, 18, 6);
+        } else {
+          ctx.save();
+          ctx.rotate(app.clock * 16);
+          ctx.strokeStyle = "rgba(230, 247, 255, 0.65)";
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(-18, -18);
+          ctx.lineTo(18, -18);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        ctx.restore();
+
+        ctx.fillStyle = "rgba(9, 24, 30, 0.86)";
+        ctx.fillRect(tower.x - 14, tower.y + 17, 28, 5);
+        ctx.fillStyle = "#89f2c0";
+        ctx.fillRect(tower.x - 14, tower.y + 17, (28 * tower.level) / 3, 5);
+      }
+
+      function drawEnemy(ctx, enemy) {
+        const hpRatio = Math.max(0, enemy.hp / enemy.maxHp);
+        const sprite = getSprite(`enemy_${enemy.type}`);
+        const bob = Math.sin(app.clock * 5 + enemy.wobbleSeed) * 2;
+
+        let width = 50;
+        let height = 50;
+        if (enemy.type === "crab") {
+          width = 52;
+          height = 44;
+        } else if (enemy.type === "squid") {
+          width = 48;
+          height = 58;
+        } else {
+          width = 68;
+          height = 48;
+        }
+        width *= enemy.scale;
+        height *= enemy.scale;
+
+        ctx.save();
+        ctx.translate(enemy.x, enemy.y + bob);
+        ctx.rotate(enemy.heading * 0.35);
+
+        if (sprite) {
+          ctx.drawImage(sprite, -width / 2, -height / 2, width, height);
+          if (enemy.hitFlash > 0) {
+            ctx.globalCompositeOperation = "source-atop";
+            ctx.globalAlpha = Math.min(0.6, enemy.hitFlash * 10);
+            ctx.fillStyle = "#fff";
+            ctx.fillRect(-width / 2, -height / 2, width, height);
+          }
+        } else {
+          ctx.fillStyle = "#ff8c69";
+          ctx.beginPath();
+          ctx.ellipse(0, 0, 12 * enemy.scale, 8 * enemy.scale, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.restore();
+
+        ctx.fillStyle = "rgba(0, 0, 0, 0.48)";
+        ctx.fillRect(enemy.x - 16, enemy.y - 26, 32, 4);
+        ctx.fillStyle = hpRatio < 0.33 ? "#ff7a7a" : "#9affb9";
+        ctx.fillRect(enemy.x - 16, enemy.y - 26, 32 * hpRatio, 4);
+      }
+
+      function drawProjectiles(ctx) {
+        for (const shot of app.projectiles) {
+          ctx.save();
+          const angle = Math.atan2(shot.vy, shot.vx);
+          ctx.translate(shot.x, shot.y);
+          ctx.rotate(angle);
+          ctx.fillStyle = shot.color;
+          ctx.beginPath();
+          ctx.moveTo(7, 0);
+          ctx.lineTo(-4, -3);
+          ctx.lineTo(-4, 3);
+          ctx.closePath();
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+
+      function drawParticles(ctx) {
+        for (const particle of app.particles) {
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, particle.life / 0.32);
+          ctx.fillStyle = particle.color;
+          ctx.beginPath();
+          ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+
+      function render() {
+        if (!app.ctx) return;
+
+        const ctx = app.ctx;
+        ctx.clearRect(0, 0, app.width, app.height);
+
+        drawBeachBackground(ctx);
+        drawPath(ctx);
+        drawScenery(ctx);
+        drawBuildSpots(ctx);
+
+        for (const tower of app.towers) drawTower(ctx, tower);
+        for (const enemy of app.enemies) drawEnemy(ctx, enemy);
+        drawBirds(ctx);
+
+        drawProjectiles(ctx);
+        drawParticles(ctx);
+      }
+
+      function gameLoop(now) {
+        const dt = Math.min(0.033, (now - app.lastFrame) / 1000);
+        app.lastFrame = now;
+
+        updateGame(dt * app.timeScale);
+        render();
+
+        requestAnimationFrame(gameLoop);
+      }
+
+      function syncTowerButtonStates() {
+        for (const btn of ui.towerButtons) {
+          const type = btn.dataset.tower;
+          if (type === app.selectedTowerType) btn.classList.add("active");
+          else btn.classList.remove("active");
+        }
+      }
+
+      function showEndOverlay(victory) {
+        app.state = "ended";
+        app.waveActive = false;
+        app.spawnQueue = [];
+        app.paused = false;
+
+        const title = victory ? "Beach Secured" : "Beach Overrun";
+        const text = victory
+          ? `You survived all ${CONFIG.maxWaves} waves. Final score: ${app.kills} creatures defeated.`
+          : `The creatures broke through your line. You made it to wave ${app.wave}.`;
+
+        ui.overlay.innerHTML = `
+          <div class="overlay-card">
+            <h1>${title}</h1>
+            <p>${text}</p>
+            <button id="playAgainBtn" class="primary">Play Again</button>
+          </div>
+        `;
+        ui.overlay.classList.remove("hidden");
+
+        const button = document.getElementById("playAgainBtn");
+        if (button) {
+          button.addEventListener("click", () => {
+            resetGame();
+            ui.overlay.classList.add("hidden");
+          });
+        }
+
+        setStatus(victory ? "Rescue complete." : "Patrol failed.", victory ? "ok" : "err");
+        updateHud();
+      }
+
+      function resetGame() {
+        app.state = "playing";
+        app.paused = false;
+        app.wave = 1;
+        app.cash = CONFIG.initialCash;
+        app.lives = CONFIG.initialLives;
+        app.kills = 0;
+        app.selectedTowerType = null;
+        app.selectedTowerId = null;
+        app.waveActive = false;
+        app.spawnQueue = [];
+        app.spawnTimer = 0;
+        app.waveCooldown = 0;
+        app.birdSpawnTimer = 0;
+        app.birdsRemainingInWave = 0;
+        app.timeScale = 1;
+        app.isFastForward = false;
+        app.towers = [];
+        app.enemies = [];
+        app.birds = [];
+        app.projectiles = [];
+        app.particles = [];
+
+        resizeCanvas();
+        syncTowerButtonStates();
+        updateFastButton();
+        setStatus("Select a tower and place it on a sandy build pad.");
+        updateHud();
+      }
+
+      function onTowerButtonClick(typeKey) {
+        const blueprint = TOWER_STATS[typeKey];
+        if (!blueprint || app.state !== "playing") return;
+
+        if (app.selectedTowerType === typeKey) {
+          app.selectedTowerType = null;
+          setStatus("Tower selection cleared.");
+        } else {
+          app.selectedTowerType = typeKey;
+          app.selectedTowerId = null;
+          setStatus(`${blueprint.name} selected ($${blueprint.cost}). Tap a sandy pad to place.`, "");
+        }
+
+        syncTowerButtonStates();
+      }
+
+      function bindEvents() {
+        window.addEventListener("resize", resizeCanvas);
+
+        ui.startGameBtn.addEventListener("click", () => {
+          ui.overlay.classList.add("hidden");
+          resetGame();
+        });
+
+        ui.startWaveBtn.addEventListener("click", () => {
+          if (app.state !== "playing") return;
+          startWave();
+        });
+
+        ui.fastBtn.addEventListener("click", () => {
+          if (app.state !== "playing") return;
+          app.isFastForward = !app.isFastForward;
+          app.timeScale = app.isFastForward ? 2 : 1;
+          updateFastButton();
+          setStatus(app.isFastForward ? "Fast-forward engaged (x2)." : "Back to normal speed.", app.isFastForward ? "warn" : "ok");
+          updateHud();
+        });
+
+        ui.upgradeBtn.addEventListener("click", () => {
+          if (app.state !== "playing") return;
+          if (!app.selectedTowerId) {
+            setStatus("Select a tower to upgrade first.", "warn");
+            return;
+          }
+
+          const tower = findTowerById(app.selectedTowerId);
+          if (!tower) {
+            setStatus("Tower is no longer available.", "warn");
+            app.selectedTowerId = null;
+            return;
+          }
+
+          upgradeTower(tower);
+        });
+
+        ui.pauseBtn.addEventListener("click", () => {
+          if (app.state !== "playing") return;
+          app.paused = !app.paused;
+          ui.pauseBtn.textContent = app.paused ? "Resume" : "Pause";
+          setStatus(app.paused ? "Game paused." : "Game resumed.", app.paused ? "warn" : "ok");
+          updateHud();
+        });
+
+        ui.restartBtn.addEventListener("click", () => {
+          ui.overlay.classList.add("hidden");
+          resetGame();
+        });
+
+        for (const btn of ui.towerButtons) {
+          btn.addEventListener("click", () => onTowerButtonClick(btn.dataset.tower));
+        }
+
+        app.canvas.addEventListener("pointerdown", (event) => {
+          event.preventDefault();
+          handleCanvasTap(event.clientX, event.clientY);
+        });
+      }
+
+      loadSprites();
+      bindEvents();
+      resizeCanvas();
+      updateFastButton();
+      updateHud();
+      requestAnimationFrame((time) => {
+        app.lastFrame = time;
+        requestAnimationFrame(gameLoop);
+      });
+    </script>
+  </body>
+</html>

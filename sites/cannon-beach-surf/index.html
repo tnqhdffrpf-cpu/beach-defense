@@ -1,0 +1,776 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cannon Beach Surf Lessons & Rentals</title>
+  <meta name="description" content="Modern redesign of Cannon Beach Surf Lessons & Rentals featuring lessons, rentals, FAQs, contact, and booking details.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;700;800&family=Satisfy&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #dff3fb;
+      --bg-soft: #b8e1ef;
+      --surface: #f6fcff;
+      --surface-2: #e9f6fb;
+      --text: #133244;
+      --muted: #3f6478;
+      --line: rgba(15, 73, 101, 0.16);
+      --accent: #0a9ec0;
+      --accent-2: #dc8a2f;
+      --max: 1160px;
+      --radius: 18px;
+      --shadow: 0 16px 34px rgba(13, 74, 103, 0.16);
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      font-family: "Manrope", "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(1000px 480px at 78% -14%, rgba(148, 227, 255, 0.8), transparent 60%),
+        radial-gradient(800px 430px at -5% 24%, rgba(254, 221, 172, 0.45), transparent 60%),
+        linear-gradient(180deg, #eff8fd 0%, #cbecf9 45%, #bde0e7 66%, #efd6b8 100%);
+      line-height: 1.55;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        repeating-linear-gradient(105deg, rgba(255, 255, 255, 0.16) 0 1px, transparent 1px 20px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.2), transparent 35%);
+      mix-blend-mode: soft-light;
+      z-index: -1;
+    }
+
+    img { max-width: 100%; display: block; }
+
+    .container {
+      width: min(var(--max), calc(100% - 2.2rem));
+      margin-inline: auto;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(9px);
+      background: rgba(248, 253, 255, 0.84);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .topbar-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.9rem 0;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.65rem;
+      text-decoration: none;
+      color: var(--text);
+      line-height: 1.02;
+    }
+
+    .brand-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 999px;
+      border: 1px solid rgba(8, 112, 151, 0.24);
+      background: linear-gradient(165deg, #f9feff, #d6f0fa);
+      padding: 0.18rem;
+      flex-shrink: 0;
+    }
+
+    .brand-wordmark {
+      display: grid;
+      align-content: center;
+      gap: 0.08rem;
+    }
+
+    .brand-kicker {
+      font-family: "Satisfy", cursive;
+      font-size: 1.05rem;
+      color: #287ca0;
+      letter-spacing: 0.01em;
+    }
+
+    .brand-main {
+      font-family: "Bebas Neue", Impact, sans-serif;
+      letter-spacing: 0.05em;
+      font-size: clamp(1.18rem, 2.7vw, 1.55rem);
+    }
+
+    .nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.55rem;
+      align-items: center;
+      justify-content: flex-end;
+    }
+
+    .nav a {
+      color: var(--muted);
+      text-decoration: none;
+      padding: 0.46rem 0.72rem;
+      border-radius: 999px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+
+    .nav a:hover,
+    .nav a:focus-visible {
+      color: var(--text);
+      background: rgba(17, 150, 182, 0.15);
+      outline: none;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      padding: 0.75rem 1.2rem;
+      font-weight: 800;
+      text-decoration: none;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+    }
+
+    .btn:hover,
+    .btn:focus-visible {
+      transform: translateY(-1px);
+      outline: none;
+    }
+
+    .btn-primary {
+      color: #f7fdff;
+      background: linear-gradient(120deg, #0a9dbd, #16c4dc);
+      box-shadow: 0 9px 18px rgba(10, 157, 189, 0.25);
+    }
+
+    .btn-secondary {
+      color: var(--text);
+      border-color: var(--line);
+      background: rgba(255, 255, 255, 0.7);
+    }
+
+    .hero {
+      padding: clamp(3rem, 8vw, 6rem) 0 3rem;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: clamp(1.2rem, 3vw, 2.2rem);
+      align-items: stretch;
+    }
+
+    .hero-copy {
+      background: linear-gradient(165deg, rgba(255, 255, 255, 0.82), rgba(234, 247, 253, 0.85));
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: clamp(1.2rem, 3vw, 2rem);
+      box-shadow: var(--shadow);
+      animation: rise 650ms ease both;
+    }
+
+    .eyebrow {
+      margin: 0;
+      color: var(--accent);
+      font-weight: 800;
+      font-size: 0.8rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    h1, h2, h3 {
+      margin: 0;
+      line-height: 1.1;
+      font-family: "Bebas Neue", Impact, sans-serif;
+      letter-spacing: 0.03em;
+    }
+
+    h1 { font-size: clamp(2.4rem, 7vw, 4.2rem); margin-top: 0.4rem; }
+    h2 { font-size: clamp(1.8rem, 4.2vw, 2.55rem); }
+    h3 { font-size: clamp(1.2rem, 3vw, 1.5rem); }
+
+    .hero-copy p {
+      margin: 0.75rem 0 0;
+      color: var(--muted);
+      max-width: 52ch;
+    }
+
+    .hero-actions {
+      margin-top: 1.25rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.72rem;
+    }
+
+    .hero-media {
+      border-radius: var(--radius);
+      overflow: hidden;
+      min-height: 360px;
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      position: relative;
+      animation: rise 850ms ease both;
+    }
+
+    .hero-media img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      filter: saturate(1.1) contrast(1.05);
+    }
+
+    .hero-pill {
+      position: absolute;
+      bottom: 1rem;
+      left: 1rem;
+      background: rgba(255, 255, 255, 0.78);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 0.38rem 0.8rem;
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+
+    .section {
+      padding: clamp(2rem, 6vw, 4rem) 0;
+    }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .section-sub {
+      margin-top: 0.45rem;
+      color: var(--muted);
+      max-width: 65ch;
+    }
+
+    .grid-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 1rem;
+    }
+
+    .card {
+      background: linear-gradient(165deg, rgba(255, 255, 255, 0.83), rgba(238, 249, 255, 0.84));
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 1rem;
+      box-shadow: var(--shadow);
+    }
+
+    .price {
+      margin-top: 0.6rem;
+      font-size: 1.24rem;
+      font-weight: 800;
+      color: var(--accent-2);
+    }
+
+    .feature-list {
+      margin: 0.65rem 0 0;
+      padding-left: 1.1rem;
+      color: var(--muted);
+    }
+
+    .feature-list li { margin: 0.28rem 0; }
+
+    .about-grid,
+    .contact-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1rem;
+    }
+
+    .person {
+      display: grid;
+      gap: 0.8rem;
+    }
+
+    .person img {
+      width: 100%;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      aspect-ratio: 4 / 3;
+      object-fit: cover;
+    }
+
+    .faq-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1rem;
+    }
+
+    details {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 0.7rem 0.8rem;
+      background: rgba(243, 252, 255, 0.75);
+    }
+
+    summary {
+      cursor: pointer;
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    details p {
+      margin: 0.65rem 0 0;
+      color: var(--muted);
+    }
+
+    iframe {
+      width: 100%;
+      border: 0;
+      border-radius: 14px;
+      min-height: 260px;
+    }
+
+    .video-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1rem;
+    }
+
+    form {
+      display: grid;
+      gap: 0.72rem;
+    }
+
+    label {
+      display: grid;
+      gap: 0.35rem;
+      font-size: 0.87rem;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    input,
+    textarea,
+    select {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.86);
+      color: var(--text);
+      font: inherit;
+      padding: 0.62rem 0.72rem;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 110px;
+    }
+
+    .contact-list {
+      margin: 0.8rem 0 0;
+      padding: 0;
+      list-style: none;
+      color: var(--muted);
+      display: grid;
+      gap: 0.48rem;
+    }
+
+    .contact-list a {
+      color: #087b9f;
+      text-decoration: none;
+    }
+
+    footer {
+      margin-top: 1.2rem;
+      padding: 1.1rem 0 1.6rem;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 980px) {
+      .hero-grid,
+      .about-grid,
+      .contact-grid,
+      .video-grid,
+      .faq-grid,
+      .grid-cards { grid-template-columns: 1fr; }
+
+      .hero-media { min-height: 290px; }
+      .section-head { align-items: flex-start; flex-direction: column; }
+    }
+
+    @media (max-width: 760px) {
+      .topbar-wrap { align-items: flex-start; flex-direction: column; }
+      .brand-kicker { font-size: 0.95rem; }
+      .brand-main { font-size: 1.2rem; }
+      .brand-icon { width: 40px; height: 40px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="container topbar-wrap">
+      <a href="#home" class="brand" aria-label="Cannon Beach Surf Lessons and Rentals home">
+        <svg class="brand-icon" viewBox="0 0 64 64" role="img" aria-hidden="true">
+          <rect x="0" y="0" width="64" height="64" rx="32" fill="#f8fdff"></rect>
+          <path d="M32 7c-6 6-11 16-11 28 0 12 5 22 11 29 6-7 11-17 11-29 0-12-5-22-11-28z" fill="#0a9ec0" opacity="0.16"></path>
+          <path d="M32 9c-5 6-9.5 15.4-9.5 26.5C22.5 46.6 27 56 32 62c5-6 9.5-15.4 9.5-26.5C41.5 24.4 37 15 32 9z" fill="none" stroke="#0a9ec0" stroke-width="2.6"></path>
+          <line x1="32" y1="13" x2="32" y2="58" stroke="#0a9ec0" stroke-width="1.9" opacity="0.8"></line>
+          <path d="M32 55.5l-4.4 5.5h8.8z" fill="#0a9ec0"></path>
+        </svg>
+        <span class="brand-wordmark">
+          <span class="brand-kicker">Cannon Beach</span>
+          <span class="brand-main">Surf Lessons & Rentals</span>
+        </span>
+      </a>
+      <nav class="nav" aria-label="Primary">
+        <a href="#lessons">Lessons</a>
+        <a href="#rentals">Rentals</a>
+        <a href="#about">About</a>
+        <a href="#faq">FAQ</a>
+        <a href="#contact">Contact</a>
+        <a href="#contact" class="btn btn-primary">Book Now</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="home">
+    <section class="hero">
+      <div class="container hero-grid">
+        <article class="hero-copy">
+          <p class="eyebrow">Surf Lessons & Rentals • Cannon Beach, Oregon</p>
+          <h1>Ride Your First Wave on the Oregon Coast</h1>
+          <p>
+            Professional surf lessons and year-round rentals for beginners through advanced surfers.
+            We focus on safety, ocean confidence, and real progress in real waves.
+          </p>
+          <p>
+            Backed by over 20 years of local teaching experience, we get you in the water with the right board,
+            wetsuit, and coaching for the day.
+          </p>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="#contact">Sign Me Up</a>
+            <a class="btn btn-secondary" href="#lessons">View Lesson Options</a>
+          </div>
+        </article>
+        <figure class="hero-media">
+          <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Cannon_Beach_on_the_Oregon_Coast_(3226002003).jpg" alt="Summertime view of Cannon Beach and Haystack Rock on the Oregon Coast">
+          <figcaption class="hero-pill">Surf. Learn. Repeat.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section id="lessons" class="section">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Surf Lessons</p>
+            <h2>Lessons for All Ages and Levels</h2>
+            <p class="section-sub">
+              Private, semi-private, and group options. Lessons are approximately 2 hours from check-in and include board + wetsuit rental.
+              Yoga add-ons are available before your lesson.
+            </p>
+          </div>
+          <a class="btn btn-secondary" href="#contact">Reserve a Lesson</a>
+        </div>
+
+        <div class="grid-cards">
+          <article class="card">
+            <h3>Private / One-On-One</h3>
+            <p>Focused coaching for first-timers or surfers wanting specific progression.</p>
+            <div class="price">$185</div>
+            <ul class="feature-list">
+              <li>Approx. 2-hour session</li>
+              <li>Board + full wetsuit included</li>
+              <li>Safety-first instruction</li>
+            </ul>
+          </article>
+
+          <article class="card">
+            <h3>2-Day Surf Lesson</h3>
+            <p>Two consecutive days to build confidence and lock in skills.</p>
+            <div class="price">From $250 / person</div>
+            <ul class="feature-list">
+              <li>1 person: $370</li>
+              <li>2 people: $300 each</li>
+              <li>3 people: $285 each</li>
+              <li>4 people: $250 each</li>
+            </ul>
+          </article>
+
+          <article class="card">
+            <h3>Private Group Lesson</h3>
+            <p>Bring your crew. We do not mix your group with strangers.</p>
+            <div class="price">From $125 / person</div>
+            <ul class="feature-list">
+              <li>2 people: $150 each</li>
+              <li>3 people: $142 each</li>
+              <li>4 people: $125 each</li>
+              <li>5+ people: contact for scheduling</li>
+            </ul>
+          </article>
+
+          <article class="card">
+            <h3>Yoga Add-On</h3>
+            <p>30-minute beach yoga warm-up targeting surfing movement and mobility.</p>
+            <div class="price">$25 / person</div>
+            <ul class="feature-list">
+              <li>Add-on for private/group lessons</li>
+              <li>Bring warm layers</li>
+              <li>Mats can be provided</li>
+            </ul>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="rentals" class="section">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Surf Rentals</p>
+            <h2>Boards + Wetsuits Ready to Go</h2>
+            <p class="section-sub">
+              Reservation-based pick-up/drop-off only. Same-day, 24-hour, and extended rentals available.
+              Please reserve at least 24 hours in advance when possible.
+            </p>
+          </div>
+          <a class="btn btn-secondary" href="#contact">Reserve Rentals</a>
+        </div>
+
+        <div class="grid-cards">
+          <article class="card">
+            <h3>Surf Rental Package</h3>
+            <p>Surfboard, wetsuit, booties, and gloves.</p>
+            <div class="price">$55 same day</div>
+            <ul class="feature-list">
+              <li>+ $20 to keep for 24 hours</li>
+              <li>Soft tops, epoxy, fiberglass options</li>
+              <li>Longboards, shortboards, and more</li>
+            </ul>
+          </article>
+
+          <article class="card">
+            <h3>Boogie Board Package</h3>
+            <p>Boogie board, wetsuit, booties, and gloves.</p>
+            <div class="price">$45 same day</div>
+            <ul class="feature-list">
+              <li>+ $20 to keep for 24 hours</li>
+              <li>Great for families and beginners</li>
+              <li>Warm gear for Pacific conditions</li>
+            </ul>
+          </article>
+
+          <article class="card">
+            <h3>A La Carte Rates</h3>
+            <p>Need a single item instead of a full package? No problem.</p>
+            <ul class="feature-list">
+              <li>Surfboard: $35/day</li>
+              <li>Premium board: $50/day</li>
+              <li>Boogie board: $20/day</li>
+              <li>Wetsuit package: $35/day</li>
+              <li>Booties, gloves, hood: $5 each</li>
+            </ul>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="about" class="section">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">About</p>
+            <h2>Local Instructors, Ocean-First Mindset</h2>
+            <p class="section-sub">
+              Cannon Beach Surf Lessons & Rentals was built from a love of surfing and decades of local instruction.
+              The mission is simple: get people in the water safely and keep the stoke high.
+            </p>
+          </div>
+        </div>
+
+        <div class="about-grid">
+          <article class="card person">
+            <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Three_Stories_Converge.jpg" alt="Surfers with boards at Short Sands Beach during summer on the Oregon coast">
+            <div>
+              <h3>Meet Julie</h3>
+              <p>
+                Julie has taught surfing in Cannon Beach area waters since 2002 and has trained multiple instructors.
+                Her teaching style blends confidence-building, safety, and practical technique to help students ride real waves.
+              </p>
+            </div>
+          </article>
+          <article class="card person">
+            <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Surfer_silhouettes_on_Cannon_Beach_(Unsplash).jpg" alt="Two surfers carrying boards on Cannon Beach in summer light">
+            <div>
+              <h3>Meet Michael</h3>
+              <p>
+                Michael brings years of surf experience and deep familiarity with the local coastline.
+                He focuses on reading conditions, smart positioning, and helping students connect with the rhythm of the ocean.
+              </p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="faq">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">FAQ</p>
+            <h2>What to Expect</h2>
+          </div>
+        </div>
+
+        <div class="faq-grid">
+          <div class="card">
+            <details open>
+              <summary>How long are surf lessons?</summary>
+              <p>Most lessons are around 2 hours from check-in. With yoga add-on: about 2.5 hours total.</p>
+            </details>
+            <details>
+              <summary>Where do lessons happen?</summary>
+              <p>Common locations include Indian Beach in Ecola State Park, Short Sands, and other local beaches depending on conditions.</p>
+            </details>
+            <details>
+              <summary>What should I bring?</summary>
+              <p>Water, towel, sunscreen, beach layers, and your own transportation. For Indian Beach, plan for park entry fees.</p>
+            </details>
+          </div>
+
+          <div class="card">
+            <details open>
+              <summary>Can I book group lessons?</summary>
+              <p>Yes. Private groups are available, including larger parties and camps. Contact directly for scheduling.</p>
+            </details>
+            <details>
+              <summary>How far in advance should I reserve?</summary>
+              <p>Earlier is best. 24+ hours in advance is recommended for both lessons and rentals.</p>
+            </details>
+            <details>
+              <summary>What if surf conditions are not safe?</summary>
+              <p>Safety is always first. Lessons may be rescheduled or adjusted with refund options depending on conditions.</p>
+            </details>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container video-grid">
+        <article class="card">
+          <p class="eyebrow">Featured Video</p>
+          <h2>Ocean2Ocean Story Feature</h2>
+          <p class="section-sub">A look at how lessons are taught and what first-timers can expect in Cannon Beach.</p>
+          <iframe src="https://www.youtube.com/embed/47XKEhmlDW8" title="Nautica Ocean2Ocean Story" loading="lazy" allowfullscreen></iframe>
+        </article>
+
+        <article class="card">
+          <p class="eyebrow">Location</p>
+          <h2>Reservation Pick-Up</h2>
+          <p class="section-sub">1042 S Hemlock St, Cannon Beach, OR 97110</p>
+          <iframe title="Cannon Beach Surf Lessons and Rentals Map" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="https://www.google.com/maps?q=1042+S+Hemlock+St,+Cannon+Beach,+OR+97110&output=embed"></iframe>
+        </article>
+      </div>
+    </section>
+
+    <section id="contact" class="section">
+      <div class="container contact-grid">
+        <article class="card">
+          <p class="eyebrow">Contact Us</p>
+          <h2>Reserve a Lesson or Rental</h2>
+          <p class="section-sub">Use this form to request your reservation and we’ll follow up shortly.</p>
+
+          <form>
+            <label>
+              Name
+              <input type="text" name="name" autocomplete="name" placeholder="Your name">
+            </label>
+            <label>
+              Email
+              <input type="email" name="email" autocomplete="email" placeholder="you@email.com">
+            </label>
+            <label>
+              Phone
+              <input type="tel" name="phone" autocomplete="tel" placeholder="(503) 555-0123">
+            </label>
+            <label>
+              Reservation Type
+              <select name="type">
+                <option>Surf Lesson</option>
+                <option>Surf Rental</option>
+                <option>Both</option>
+              </select>
+            </label>
+            <label>
+              Number of Surfers / Reservations
+              <input type="number" min="1" name="group_size" placeholder="1">
+            </label>
+            <label>
+              Reservation Date
+              <input type="date" name="reservation_date">
+            </label>
+            <label>
+              Message
+              <textarea name="message" placeholder="Date, group size, and anything we should know"></textarea>
+            </label>
+            <button type="submit" class="btn btn-primary">Send Reservation Request</button>
+          </form>
+        </article>
+
+        <aside class="card">
+          <p class="eyebrow">Business Details</p>
+          <h2>Let’s Go Surfing</h2>
+          <ul class="contact-list">
+            <li>Phone: <a href="tel:+15037913515">503-791-3515</a></li>
+            <li>Email: <a href="mailto:julie@cannonbeachsurflessonsandrentals.com">julie@cannonbeachsurflessonsandrentals.com</a></li>
+            <li>Pickup: 1042 S Hemlock St, Cannon Beach, OR 97110</li>
+            <li>Parking: Back of building on Rock Court</li>
+            <li>Facebook: <a href="https://www.facebook.com" target="_blank" rel="noopener">Follow on Facebook</a></li>
+            <li>Instagram: @cannonbeachsurflessons.rentals</li>
+          </ul>
+
+          <a class="btn btn-secondary" href="https://cannonbeachsurflessonsandrentals.com/" target="_blank" rel="noopener">View Original Site</a>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>© <span id="year"></span> Cannon Beach Surf Lessons & Rentals. Modern redesign concept for a surf business website.</p>
+    </div>
+  </footer>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>

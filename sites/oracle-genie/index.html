@@ -1,0 +1,767 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Oracle Genie</title>
+  <style>
+    :root {
+      --bg-1: #111827;
+      --bg-2: #1e293b;
+      --panel: rgba(15, 23, 42, 0.72);
+      --line: rgba(255, 255, 255, 0.14);
+      --text: #f8fafc;
+      --muted: #cbd5e1;
+      --accent: #f59e0b;
+      --accent-2: #22d3ee;
+      --good: #10b981;
+      --shadow: 0 20px 45px rgba(0, 0, 0, 0.35);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Avenir Next", "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 15% 20%, rgba(245, 158, 11, 0.2), transparent 45%),
+        radial-gradient(circle at 85% 15%, rgba(34, 211, 238, 0.2), transparent 42%),
+        linear-gradient(160deg, var(--bg-1), var(--bg-2));
+      display: grid;
+      place-items: center;
+      padding: max(12px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+    }
+
+    .app {
+      width: min(680px, 100%);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(8px);
+      overflow: hidden;
+    }
+
+    .topbar {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .sigil {
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: #fde68a;
+      user-select: none;
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .dev-toggle {
+      border: 1px solid var(--line);
+      background: rgba(15, 23, 42, 0.8);
+      color: var(--text);
+      padding: 7px 10px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+
+    .dev-toggle.on {
+      border-color: rgba(34, 211, 238, 0.8);
+      background: rgba(34, 211, 238, 0.2);
+      color: #cffafe;
+    }
+
+    .stage {
+      padding: 26px 20px 24px;
+    }
+
+    .title {
+      margin: 0 0 8px;
+      font-size: clamp(24px, 4vw, 34px);
+      line-height: 1.1;
+    }
+
+    .subtitle {
+      margin: 0 0 18px;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.4;
+    }
+
+    .question-card {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 16px;
+      background: rgba(30, 41, 59, 0.6);
+      margin-bottom: 14px;
+    }
+
+    .question {
+      margin: 0;
+      font-size: 19px;
+      line-height: 1.35;
+    }
+
+    .progress {
+      margin-top: 10px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .options {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .options.two-col {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .option-btn {
+      position: relative;
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px 14px;
+      background: rgba(15, 23, 42, 0.74);
+      color: var(--text);
+      cursor: pointer;
+      text-align: left;
+      transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
+      min-height: 92px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 4px;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .zone-overlay {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      pointer-events: none;
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    .zone-cell {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: rgba(240, 249, 255, 0.92);
+      border: 1px solid rgba(125, 211, 252, 0.35);
+      background: rgba(14, 116, 144, 0.18);
+      font-weight: 700;
+    }
+
+    .option-btn:hover,
+    .option-btn:focus-visible {
+      transform: translateY(-1px);
+      border-color: rgba(245, 158, 11, 0.65);
+      background: rgba(51, 65, 85, 0.78);
+      outline: none;
+    }
+
+    .opt-title {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      line-height: 1.2;
+    }
+
+    .opt-note {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .center-wrap {
+      display: grid;
+      place-items: center;
+      text-align: center;
+      padding: 10px 0 8px;
+    }
+
+    .spinner {
+      width: 58px;
+      height: 58px;
+      border-radius: 999px;
+      border: 4px solid rgba(255, 255, 255, 0.18);
+      border-top-color: var(--accent);
+      animation: spin 0.95s linear infinite;
+      margin-bottom: 14px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .loading-text {
+      color: var(--muted);
+      margin-bottom: 16px;
+      font-size: 15px;
+    }
+
+    .reveal-btn,
+    .restart-btn {
+      border: none;
+      border-radius: 14px;
+      padding: 14px 20px;
+      cursor: pointer;
+      font-size: 17px;
+      font-weight: 700;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .reveal-btn {
+      background: linear-gradient(135deg, var(--accent), #f97316);
+      color: #111827;
+    }
+
+    .reveal-btn:disabled {
+      opacity: 0.55;
+      cursor: default;
+    }
+
+    .card-reveal {
+      margin-top: 8px;
+      display: grid;
+      justify-items: center;
+      gap: 14px;
+    }
+
+    .card-frame {
+      width: min(250px, 70vw);
+      aspect-ratio: 5 / 7;
+      border-radius: 20px;
+      background: #f8fafc;
+      border: 2px solid #e2e8f0;
+      color: #111827;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      padding: 14px 14px 10px;
+      box-shadow: 0 14px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    .corner {
+      font-size: 20px;
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: 0.03em;
+    }
+
+    .center-rank {
+      align-self: center;
+      justify-self: center;
+      font-size: clamp(52px, 9vw, 72px);
+      font-weight: 800;
+    }
+
+    .red {
+      color: #b91c1c;
+    }
+
+    .black {
+      color: #0f172a;
+    }
+
+    .explain {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      text-align: center;
+      max-width: 58ch;
+    }
+
+    .restart-btn {
+      background: linear-gradient(135deg, var(--accent-2), var(--good));
+      color: #06202b;
+    }
+
+    .hint {
+      margin-top: 10px;
+      color: rgba(248, 250, 252, 0.52);
+      font-size: 12px;
+      text-align: center;
+    }
+
+    .dev-panel {
+      margin-top: 14px;
+      border: 1px dashed rgba(34, 211, 238, 0.55);
+      border-radius: 12px;
+      padding: 12px;
+      background: rgba(8, 47, 73, 0.18);
+    }
+
+    .dev-title {
+      margin: 0 0 10px;
+      color: #a5f3fc;
+      font-size: 12px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      font-weight: 800;
+    }
+
+    .dev-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .dev-cell {
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 10px;
+      padding: 8px;
+      background: rgba(15, 23, 42, 0.45);
+      font-size: 12px;
+      color: #e2e8f0;
+    }
+
+    .dev-cell strong {
+      color: #67e8f9;
+    }
+
+    .dev-state {
+      margin: 0;
+      font-size: 12px;
+      color: #bae6fd;
+      line-height: 1.5;
+      word-break: break-word;
+    }
+
+    @media (max-width: 560px) {
+      .stage {
+        padding: 20px 14px 18px;
+      }
+      .options {
+        grid-template-columns: 1fr;
+      }
+      .title {
+        font-size: clamp(22px, 7vw, 30px);
+      }
+      .option-btn {
+        min-height: 106px;
+      }
+      .dev-grid {
+        grid-template-columns: 1fr;
+      }
+      .question {
+        font-size: 18px;
+      }
+      .subtitle {
+        font-size: 14px;
+      }
+      .topbar {
+        font-size: 13px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <div class="topbar">
+      <div class="sigil" id="sigil">The Oracle Genie</div>
+      <div class="topbar-right">
+        <div id="statusLine">Focus on one playing card</div>
+        <button id="devToggle" class="dev-toggle on" type="button">Dev View On</button>
+      </div>
+    </div>
+    <section class="stage" id="stage"></section>
+  </main>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const devControlEnabled = urlParams.get("dev") === "1";
+
+    const state = {
+      suit: null,
+      band: null,
+      subBand: null,
+      rank: null,
+      revealReady: false,
+      devView: devControlEnabled,
+      lastTap: "None yet",
+      lastChoice: "None yet"
+    };
+
+    const suitSymbols = {
+      hearts: "\u2665",
+      diamonds: "\u2666",
+      clubs: "\u2663",
+      spades: "\u2660"
+    };
+
+    const suitColor = {
+      hearts: "red",
+      diamonds: "red",
+      clubs: "black",
+      spades: "black"
+    };
+
+    const stage = document.getElementById("stage");
+    const statusLine = document.getElementById("statusLine");
+    const devToggle = document.getElementById("devToggle");
+
+    if (!devControlEnabled) {
+      devToggle.style.display = "none";
+    }
+
+    devToggle.addEventListener("click", () => {
+      state.devView = !state.devView;
+      devToggle.classList.toggle("on", state.devView);
+      devToggle.textContent = state.devView ? "Dev View On" : "Dev View Off";
+      render();
+    });
+
+    function zoneOverlayHTML(zoneMap) {
+      if (!state.devView) {
+        return "";
+      }
+      return `
+        <div class="zone-overlay">
+          ${zoneMap.map((zone, i) => `<div class="zone-cell">Z${i + 1}: ${zone.code}</div>`).join("")}
+        </div>
+      `;
+    }
+
+    function buttonHTML(choice, zoneMap) {
+      return `
+        <button class="option-btn">
+          <span class="opt-title">${choice.title}</span>
+          <span class="opt-note">${choice.note}</span>
+          ${zoneOverlayHTML(zoneMap)}
+        </button>
+      `;
+    }
+
+    function getQuadrantIndex(event, button) {
+      const rect = button.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+      const col = x < rect.width / 2 ? 0 : 1;
+      const row = y < rect.height / 2 ? 0 : 1;
+      return row * 2 + col;
+    }
+
+    function stateSummary() {
+      const suit = state.suit || "unset";
+      const band = state.band || "unset";
+      const sub = state.subBand || "unset";
+      const rank = state.rank || "unset";
+      const card = state.suit && state.rank ? fullCardName() : "pending";
+      return `Suit: ${suit} | Band: ${band} | Sub-band: ${sub} | Rank: ${rank} | Card: ${card} | Last answer: ${state.lastChoice} | Last zone: ${state.lastTap}`;
+    }
+
+    function renderQuestion(question, progress, choices, zoneMap, onPick) {
+      const isTwo = choices.length <= 2 ? "two-col" : "";
+      const devPanel = state.devView ? `
+        <div class="dev-panel">
+          <p class="dev-title">Developer Overlay</p>
+          <div class="dev-grid">
+            ${zoneMap.map((zone, i) => `
+              <div class="dev-cell"><strong>Zone ${i + 1}</strong><br>${zone.code} -> ${zone.label}</div>
+            `).join("")}
+          </div>
+          <p class="dev-state">All answer buttons use the same quadrant map for this step.</p>
+          <p class="dev-state">${stateSummary()}</p>
+        </div>
+      ` : "";
+      stage.innerHTML = `
+        <h1 class="title">Mind-Reading Calibration</h1>
+        <p class="subtitle">Think of your card silently. Answer by instinct. Do not overthink.</p>
+        <div class="question-card">
+          <p class="question">${question}</p>
+          <div class="progress">${progress}</div>
+        </div>
+        <div class="options ${isTwo}">
+          ${choices.map((choice) => buttonHTML(choice, zoneMap)).join("")}
+        </div>
+        ${devPanel}
+        <div class="hint">Quick tip: first impulse is strongest.</div>
+      `;
+      stage.querySelectorAll(".option-btn").forEach((btn) => {
+        btn.addEventListener("click", (event) => {
+          const choiceTitle = btn.querySelector(".opt-title").textContent;
+          const zoneIndex = getQuadrantIndex(event, btn);
+          const zone = zoneMap[zoneIndex];
+          state.lastChoice = choiceTitle;
+          state.lastTap = `Z${zoneIndex + 1} (${zone.code})`;
+          onPick(zone);
+        });
+      });
+    }
+
+    function renderStep1() {
+      statusLine.textContent = "Question 1 of 4";
+      const choices = [
+        { title: "Road trip with no plan", note: "Windows down, music up." },
+        { title: "Cook for friends at home", note: "Host mode, cozy energy." },
+        { title: "Thrift or antique hunt", note: "Look for hidden gems." },
+        { title: "Late movie and dessert", note: "Simple, low-stress night." }
+      ];
+      const zoneMap = [
+        { value: "hearts", code: "H", label: "Hearts" },
+        { value: "diamonds", code: "D", label: "Diamonds" },
+        { value: "clubs", code: "C", label: "Clubs" },
+        { value: "spades", code: "S", label: "Spades" }
+      ];
+      renderQuestion(
+        "You have a free Saturday. Which plan sounds best right now?",
+        "Calibration layer 1 of 4",
+        choices,
+        zoneMap,
+        (zone) => {
+          state.suit = zone.value;
+          renderStep2();
+        }
+      );
+    }
+
+    function renderStep2() {
+      statusLine.textContent = "Question 2 of 4";
+      const choices = [
+        { title: "Start with appetizers", note: "Build up slowly." },
+        { title: "Jump to mains first", note: "Go straight to impact." },
+        { title: "Read reviews before ordering", note: "Measured and careful." },
+        { title: "Order by first instinct", note: "Fast and decisive." }
+      ];
+      const zoneMap = [
+        { value: "low", code: "A-7", label: "Ace through 7" },
+        { value: "high", code: "8-K", label: "8 through King" },
+        { value: "low", code: "A-7", label: "Ace through 7" },
+        { value: "high", code: "8-K", label: "8 through King" }
+      ];
+      renderQuestion(
+        "At a new restaurant, how do you usually decide?",
+        "Calibration layer 2 of 4",
+        choices,
+        zoneMap,
+        (zone) => {
+          state.band = zone.value;
+          renderStep3();
+        }
+      );
+    }
+
+    function renderStep3() {
+      statusLine.textContent = "Question 3 of 4";
+      const choices = [
+        { title: "Neatly scheduled day", note: "Everything blocked on a calendar." },
+        { title: "Flexible but productive", note: "Loose plan, still gets done." },
+        { title: "Last-minute and social", note: "Spontaneous with people." },
+        { title: "Deep solo focus", note: "One thing at a time." }
+      ];
+      const lowZoneMap = [
+        { value: "a4", code: "A-4", label: "Ace through 4" },
+        { value: "57", code: "5-7", label: "5 through 7" },
+        { value: "a4", code: "A-4", label: "Ace through 4" },
+        { value: "57", code: "5-7", label: "5 through 7" }
+      ];
+      const highZoneMap = [
+        { value: "810", code: "8-10", label: "8 through 10" },
+        { value: "jqk", code: "J-K", label: "Jack through King" },
+        { value: "810", code: "8-10", label: "8 through 10" },
+        { value: "jqk", code: "J-K", label: "Jack through King" }
+      ];
+      const zoneMap = state.band === "low" ? lowZoneMap : highZoneMap;
+      renderQuestion(
+        "Which work rhythm feels closest to you this week?",
+        "Calibration layer 3 of 4",
+        choices,
+        zoneMap,
+        (zone) => {
+          state.subBand = zone.value;
+          renderStep4();
+        }
+      );
+    }
+
+    function renderStep4() {
+      statusLine.textContent = "Final calibration";
+      const choices = [
+        { title: "Clean and minimal", note: "Less noise, more focus." },
+        { title: "Bold and expressive", note: "Make it stand out." },
+        { title: "Classic and timeless", note: "Reliable and familiar." },
+        { title: "Unexpected and quirky", note: "A little surprise." }
+      ];
+      const zoneMaps = {
+        a4: [
+          { value: "A", code: "A", label: "Ace" },
+          { value: "2", code: "2", label: "Two" },
+          { value: "3", code: "3", label: "Three" },
+          { value: "4", code: "4", label: "Four" }
+        ],
+        "57": [
+          { value: "5", code: "5", label: "Five" },
+          { value: "6", code: "6", label: "Six" },
+          { value: "7", code: "7", label: "Seven" },
+          { value: "7", code: "7*", label: "Seven (backup)" }
+        ],
+        "810": [
+          { value: "8", code: "8", label: "Eight" },
+          { value: "9", code: "9", label: "Nine" },
+          { value: "10", code: "10", label: "Ten" },
+          { value: "10", code: "10*", label: "Ten (backup)" }
+        ],
+        jqk: [
+          { value: "J", code: "J", label: "Jack" },
+          { value: "Q", code: "Q", label: "Queen" },
+          { value: "K", code: "K", label: "King" },
+          { value: "K", code: "K*", label: "King (backup)" }
+        ]
+      };
+
+      renderQuestion(
+        "Last one: pick the design style you naturally gravitate toward.",
+        "Calibration layer 4 of 4",
+        choices,
+        zoneMaps[state.subBand],
+        (zone) => {
+          state.rank = zone.value;
+          renderLoading();
+        }
+      );
+    }
+
+    function renderLoading() {
+      statusLine.textContent = "Reading thought pattern...";
+      state.revealReady = false;
+      stage.innerHTML = `
+        <h1 class="title">Decoding Neural Echo</h1>
+        <p class="subtitle">Hold the card in your mind. Keep your eyes on the center point.</p>
+        <div class="center-wrap">
+          <div class="spinner" id="spin"></div>
+          <div class="loading-text" id="loadingText">Aligning subconscious markers...</div>
+          <button class="reveal-btn" id="revealBtn" disabled>Reveal My Card</button>
+        </div>
+        ${state.devView ? `<div class="dev-panel"><p class="dev-title">Developer Overlay</p><p class="dev-state">${stateSummary()}</p></div>` : ""}
+      `;
+      const lines = [
+        "Aligning subconscious markers...",
+        "Cross-checking symbolic response...",
+        "Final signal lock acquired..."
+      ];
+      let idx = 0;
+      const text = stage.querySelector("#loadingText");
+      const spin = stage.querySelector("#spin");
+      const btn = stage.querySelector("#revealBtn");
+
+      const ticker = window.setInterval(() => {
+        idx += 1;
+        if (idx < lines.length) {
+          text.textContent = lines[idx];
+          return;
+        }
+        window.clearInterval(ticker);
+        spin.style.animation = "none";
+        text.textContent = "Ready.";
+        btn.disabled = false;
+        state.revealReady = true;
+      }, 1100);
+
+      btn.addEventListener("click", () => {
+        if (!state.revealReady) {
+          return;
+        }
+        renderReveal();
+      });
+    }
+
+    function fullCardName() {
+      const suitName = state.suit.charAt(0).toUpperCase() + state.suit.slice(1);
+      const rankNameMap = { A: "Ace", J: "Jack", Q: "Queen", K: "King" };
+      const rank = rankNameMap[state.rank] || state.rank;
+      return `${rank} of ${suitName}`;
+    }
+
+    function renderReveal() {
+      const symbol = suitSymbols[state.suit];
+      const colorClass = suitColor[state.suit];
+      statusLine.textContent = "Prediction complete";
+      stage.innerHTML = `
+        <h1 class="title">Your Thought Card</h1>
+        <p class="subtitle">The Oracle Genie followed your subconscious pattern and found this card.</p>
+        <div class="card-reveal">
+          <div class="card-frame ${colorClass}">
+            <div class="corner">${state.rank}${symbol}</div>
+            <div class="center-rank">${state.rank}${symbol}</div>
+            <div class="corner" style="justify-self:end; transform: rotate(180deg);">${state.rank}${symbol}</div>
+          </div>
+          <p class="explain"><strong>${fullCardName()}</strong></p>
+          <p class="explain">Your choices around color, tempo, and archetype quietly signaled this outcome.</p>
+          ${state.devView ? `<div class="dev-panel"><p class="dev-title">Developer Overlay</p><p class="dev-state">${stateSummary()}</p></div>` : ""}
+          <button class="restart-btn" id="restartBtn">Run It Again</button>
+        </div>
+      `;
+      stage.querySelector("#restartBtn").addEventListener("click", resetAndStart);
+    }
+
+    function resetAndStart() {
+      state.suit = null;
+      state.band = null;
+      state.subBand = null;
+      state.rank = null;
+      state.revealReady = false;
+      state.lastTap = "None yet";
+      state.lastChoice = "None yet";
+      renderStep1();
+    }
+
+    function render() {
+      if (!state.suit) {
+        renderStep1();
+        return;
+      }
+      if (!state.band) {
+        renderStep2();
+        return;
+      }
+      if (!state.subBand) {
+        renderStep3();
+        return;
+      }
+      if (!state.rank) {
+        renderStep4();
+        return;
+      }
+      if (!state.revealReady) {
+        renderLoading();
+        return;
+      }
+      renderReveal();
+    }
+
+    renderStep1();
+  </script>
+</body>
+</html>

@@ -1,0 +1,615 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Harrisburg Track & Field Hub</title>
+    <style>
+      :root {
+        --hb-purple: #4b2e83;
+        --hb-purple-dark: #2f1b55;
+        --hb-gold: #f0b323;
+        --ink: #1a1a1a;
+        --paper: #fcfbf8;
+        --panel: #ffffff;
+        --muted: #6b7280;
+        --ring: rgba(75, 46, 131, 0.18);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at 8% 12%, rgba(240, 179, 35, 0.2), transparent 34%),
+          radial-gradient(circle at 88% 5%, rgba(75, 46, 131, 0.14), transparent 40%),
+          linear-gradient(180deg, #ffffff 0%, var(--paper) 44%, #f5f3ef 100%);
+        min-height: 100vh;
+      }
+
+      .shell {
+        width: min(1180px, 94vw);
+        margin: 0 auto;
+        padding: 1.1rem 0 3rem;
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: 1.1fr 1fr;
+        gap: 1rem;
+        align-items: stretch;
+        margin-top: 0.8rem;
+      }
+
+      .hero-main,
+      .hero-feed {
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(245, 243, 239, 0.96));
+        border: 1px solid rgba(75, 46, 131, 0.14);
+        border-radius: 20px;
+        padding: 1.2rem;
+        box-shadow: 0 12px 34px rgba(28, 20, 47, 0.08);
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 0.9rem;
+      }
+
+      .logo-wrap {
+        width: 58px;
+        height: 58px;
+        position: relative;
+      }
+
+      .logo-wrap img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        border-radius: 12px;
+        border: 2px solid var(--hb-gold);
+        background: white;
+      }
+
+      .badge {
+        width: 58px;
+        height: 58px;
+        border-radius: 14px;
+        background: linear-gradient(145deg, var(--hb-purple), var(--hb-purple-dark));
+        color: var(--hb-gold);
+        display: grid;
+        place-items: center;
+        font-weight: 800;
+        font-size: 1.25rem;
+        border: 2px solid var(--hb-gold);
+        letter-spacing: 0.04em;
+      }
+
+      .logo-wrap .badge {
+        position: absolute;
+        inset: 0;
+      }
+
+      h1,
+      h2,
+      h3 {
+        margin: 0;
+      }
+
+      .hero-main h1 {
+        margin-top: 0.85rem;
+        font-size: clamp(1.5rem, 2.7vw, 2.25rem);
+      }
+
+      .sub {
+        margin-top: 0.45rem;
+        color: #30343d;
+      }
+
+      .quick-links {
+        margin-top: 1rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.6rem;
+      }
+
+      .quick-links a {
+        text-decoration: none;
+        font-weight: 700;
+        font-size: 0.9rem;
+        padding: 0.5rem 0.8rem;
+        border-radius: 999px;
+        background: var(--hb-purple);
+        color: white;
+      }
+
+      .quick-links a.alt {
+        background: var(--hb-gold);
+        color: #2a230e;
+      }
+
+      .feed-title {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.8rem;
+        margin-bottom: 0.65rem;
+      }
+
+      .pill {
+        font-size: 0.75rem;
+        font-weight: 700;
+        padding: 0.28rem 0.62rem;
+        border-radius: 999px;
+        color: var(--hb-purple-dark);
+        background: rgba(240, 179, 35, 0.3);
+      }
+
+      .feed-items {
+        display: grid;
+        gap: 0.7rem;
+      }
+
+      .feed-item {
+        border-left: 4px solid var(--hb-gold);
+        background: white;
+        padding: 0.65rem 0.75rem;
+        border-radius: 10px;
+        box-shadow: 0 4px 14px rgba(25, 25, 25, 0.06);
+      }
+
+      .feed-item strong {
+        color: var(--hb-purple-dark);
+      }
+
+      .feed-item small {
+        color: var(--muted);
+      }
+
+      .grid {
+        margin-top: 1rem;
+        display: grid;
+        grid-template-columns: 1.35fr 1fr;
+        gap: 1rem;
+      }
+
+      .card {
+        background: var(--panel);
+        border: 1px solid rgba(75, 46, 131, 0.12);
+        border-radius: 18px;
+        padding: 1rem;
+        box-shadow: 0 10px 24px rgba(26, 26, 40, 0.06);
+      }
+
+      .card h2 {
+        font-size: 1.2rem;
+        margin-bottom: 0.72rem;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      th,
+      td {
+        text-align: left;
+        padding: 0.56rem;
+        border-bottom: 1px solid #ece8de;
+        font-size: 0.92rem;
+      }
+
+      th {
+        color: var(--hb-purple-dark);
+      }
+
+      .resources {
+        display: grid;
+        gap: 0.6rem;
+      }
+
+      .resource {
+        background: linear-gradient(125deg, rgba(75, 46, 131, 0.08), rgba(240, 179, 35, 0.12));
+        border: 1px solid rgba(75, 46, 131, 0.16);
+        border-radius: 12px;
+        padding: 0.75rem;
+      }
+
+      .resource a {
+        color: #1c1c1c;
+        font-weight: 700;
+      }
+
+      .exercise-list {
+        display: grid;
+        gap: 0.62rem;
+      }
+
+      .exercise {
+        border: 1px solid #ebe7de;
+        border-radius: 12px;
+        padding: 0.66rem;
+        background: #fffdfa;
+      }
+
+      .exercise b {
+        color: var(--hb-purple-dark);
+      }
+
+      .split {
+        margin-top: 1rem;
+        display: grid;
+        grid-template-columns: 1fr 1.2fr;
+        gap: 1rem;
+      }
+
+      form {
+        display: grid;
+        gap: 0.62rem;
+      }
+
+      label {
+        font-size: 0.86rem;
+        color: #4d4b56;
+        font-weight: 700;
+      }
+
+      input,
+      select,
+      textarea,
+      button {
+        width: 100%;
+        margin-top: 0.25rem;
+        border-radius: 10px;
+        border: 1px solid #d7d2c4;
+        padding: 0.56rem 0.62rem;
+        font: inherit;
+      }
+
+      input:focus,
+      select:focus,
+      textarea:focus {
+        outline: 3px solid var(--ring);
+        border-color: var(--hb-purple);
+      }
+
+      button {
+        border: 0;
+        font-weight: 800;
+        cursor: pointer;
+      }
+
+      .btn-primary {
+        background: var(--hb-purple);
+        color: #fff;
+      }
+
+      .btn-secondary {
+        background: var(--hb-gold);
+        color: #2c230d;
+      }
+
+      .small-note {
+        color: var(--muted);
+        font-size: 0.84rem;
+        margin-top: 0.38rem;
+      }
+
+      .fade-up {
+        animation: fadeUp 0.5s ease both;
+      }
+
+      @keyframes fadeUp {
+        from {
+          transform: translateY(9px);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+
+      @media (max-width: 960px) {
+        .hero,
+        .grid,
+        .split {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <section class="hero fade-up">
+        <article class="hero-main">
+          <div class="brand">
+            <div class="logo-wrap">
+              <img
+                src="https://www.osaa.org/images/school_logos/128x128/Harrisburg.png"
+                alt="Harrisburg Eagles logo"
+                onerror="this.style.display='none';document.getElementById('logo-fallback').style.display='grid';"
+              />
+              <div class="badge" id="logo-fallback" style="display: none">HHS</div>
+            </div>
+            <div>
+              <strong>Harrisburg Eagles</strong>
+              <div class="small-note">Track & Field Team Hub | Harrisburg, Oregon</div>
+            </div>
+          </div>
+          <h1>One place for updates, meets, logs, and at-home training.</h1>
+          <p class="sub">
+            This mockup is built for athletes, coaches, and families to quickly see what is happening each week and keep everyone aligned.
+          </p>
+          <div class="quick-links">
+            <a href="#schedule">Meet Schedule</a>
+            <a class="alt" href="#log">Training Log</a>
+            <a href="#home-workouts">Exercises & Stretches</a>
+            <a class="alt" href="#resources">Team Files</a>
+          </div>
+        </article>
+
+        <aside class="hero-feed">
+          <div class="feed-title">
+            <h2>Coach Feed</h2>
+            <span class="pill">Live Updates</span>
+          </div>
+          <div class="feed-items" id="coach-feed">
+            <div class="feed-item">
+              <strong>Coach Ramirez:</strong> Bring track spikes + rain shell for Friday. Weather is expected around 48F.
+              <div><small>Posted: Feb 11, 2026 at 7:20 PM</small></div>
+            </div>
+            <div class="feed-item">
+              <strong>Coach Lee:</strong> Sprinters: blocks clinic starts tomorrow at 3:45 PM. Distance group starts 20 minutes later.
+              <div><small>Posted: Feb 10, 2026 at 8:11 PM</small></div>
+            </div>
+            <div class="feed-item">
+              <strong>Coaching Staff:</strong> Paperwork deadline is Feb 20. Upload physical forms in Team Files.
+              <div><small>Posted: Feb 9, 2026 at 6:03 PM</small></div>
+            </div>
+          </div>
+        </aside>
+      </section>
+
+      <section class="grid fade-up" id="schedule">
+        <article class="card">
+          <h2>Upcoming Meet Schedule</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Meet</th>
+                <th>Location</th>
+                <th>Bus</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Mar 14, 2026</td>
+                <td>Willamette Valley Early Invite</td>
+                <td>Lebanon HS</td>
+                <td>8:00 AM</td>
+              </tr>
+              <tr>
+                <td>Mar 21, 2026</td>
+                <td>Eagles Home Opener</td>
+                <td>Harrisburg HS Track</td>
+                <td>Home Meet</td>
+              </tr>
+              <tr>
+                <td>Apr 4, 2026</td>
+                <td>Mid-Valley Challenge</td>
+                <td>Cottage Grove HS</td>
+                <td>7:15 AM</td>
+              </tr>
+              <tr>
+                <td>Apr 18, 2026</td>
+                <td>League Qualifier #1</td>
+                <td>Junction City HS</td>
+                <td>7:00 AM</td>
+              </tr>
+              <tr>
+                <td>May 2, 2026</td>
+                <td>Sky-Em Championships</td>
+                <td>Siuslaw HS</td>
+                <td>6:30 AM</td>
+              </tr>
+            </tbody>
+          </table>
+          <p class="small-note">Sample schedule for layout preview. Replace with official calendar export or coach-managed entries.</p>
+        </article>
+
+        <article class="card" id="resources">
+          <h2>Team Files & Resources</h2>
+          <div class="resources">
+            <div class="resource">
+              <a href="#">2026 Athlete Handbook (PDF)</a>
+              <div class="small-note">Code of conduct, meet-day checklist, letter requirements.</div>
+            </div>
+            <div class="resource">
+              <a href="#">Practice Plan Calendar (Google Sheet)</a>
+              <div class="small-note">Weekly themes, event-group priorities, lifting slots.</div>
+            </div>
+            <div class="resource">
+              <a href="#">Travel Release + Medical Forms</a>
+              <div class="small-note">Parent signatures and emergency contacts.</div>
+            </div>
+            <div class="resource">
+              <a href="#">Personal Records Board (Live)</a>
+              <div class="small-note">Top marks by event for this season.</div>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section class="split fade-up" id="home-workouts">
+        <article class="card">
+          <h2>At-Home Exercises & Stretches</h2>
+          <div class="exercise-list">
+            <div class="exercise">
+              <b>Dynamic Warm-up Circuit</b>
+              <div>2 rounds: high knees (30 sec), butt kicks (30 sec), leg swings (10/leg), A-skips (20m).</div>
+            </div>
+            <div class="exercise">
+              <b>Core + Stability</b>
+              <div>Front plank (3 x 40 sec), side plank (2 x 30 sec/side), dead bug (2 x 12).</div>
+            </div>
+            <div class="exercise">
+              <b>Mobility Reset</b>
+              <div>Hip flexor stretch (2 x 45 sec), calf stretch (2 x 30 sec), thoracic rotation (10 each side).</div>
+            </div>
+            <div class="exercise">
+              <b>Bodyweight Strength</b>
+              <div>Split squats (3 x 10/leg), pushups (3 x 12), glute bridges (3 x 15), band pull-aparts (2 x 20).</div>
+            </div>
+          </div>
+        </article>
+
+        <article class="card" id="log">
+          <h2>Shared Training Log</h2>
+          <form id="log-form">
+            <label>
+              Athlete Name
+              <input type="text" id="athlete" required placeholder="Jordan P." />
+            </label>
+            <label>
+              Date
+              <input type="date" id="date" required />
+            </label>
+            <label>
+              Event Group
+              <select id="event" required>
+                <option value="">Select event group</option>
+                <option>Sprints</option>
+                <option>Distance</option>
+                <option>Jumps</option>
+                <option>Throws</option>
+                <option>Hurdles</option>
+                <option>Multi</option>
+              </select>
+            </label>
+            <label>
+              Workout Summary
+              <textarea id="workout" rows="2" required placeholder="Example: 6 x 200m @ race pace + hurdle mobility"></textarea>
+            </label>
+            <label>
+              Effort (1-10)
+              <input type="number" id="effort" min="1" max="10" required />
+            </label>
+            <button type="submit" class="btn-primary">Add to Team Log</button>
+            <button type="button" id="reset-demo" class="btn-secondary">Reset Demo Entries</button>
+          </form>
+          <p class="small-note">Demo mode: entries save to this browser only. Production version can use Supabase/Firebase for true team-wide sharing.</p>
+        </article>
+      </section>
+
+      <section class="card fade-up">
+        <h2>Recent Training Entries</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Athlete</th>
+              <th>Date</th>
+              <th>Group</th>
+              <th>Workout</th>
+              <th>Effort</th>
+            </tr>
+          </thead>
+          <tbody id="log-table"></tbody>
+        </table>
+      </section>
+    </div>
+
+    <script>
+      const seedEntries = [
+        {
+          athlete: "Maya K.",
+          date: "2026-02-11",
+          event: "Sprints",
+          workout: "Starts + 4 x 120m build + mobility",
+          effort: 7
+        },
+        {
+          athlete: "Evan R.",
+          date: "2026-02-10",
+          event: "Distance",
+          workout: "35-min easy run + 6 strides",
+          effort: 5
+        },
+        {
+          athlete: "Talia S.",
+          date: "2026-02-10",
+          event: "Jumps",
+          workout: "Approach work + 8 takeoff drills",
+          effort: 6
+        }
+      ];
+
+      const storageKey = "hhs_track_log_demo";
+      const logTable = document.getElementById("log-table");
+      const form = document.getElementById("log-form");
+      const resetBtn = document.getElementById("reset-demo");
+
+      const prettyDate = (raw) =>
+        new Date(raw + "T00:00:00").toLocaleDateString(undefined, {
+          month: "short",
+          day: "numeric",
+          year: "numeric"
+        });
+
+      const getEntries = () => {
+        const stored = localStorage.getItem(storageKey);
+        return stored ? JSON.parse(stored) : seedEntries;
+      };
+
+      const saveEntries = (entries) => {
+        localStorage.setItem(storageKey, JSON.stringify(entries));
+      };
+
+      const renderRows = () => {
+        const entries = getEntries().sort((a, b) => new Date(b.date) - new Date(a.date));
+        logTable.innerHTML = "";
+        for (const entry of entries) {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${entry.athlete}</td>
+            <td>${prettyDate(entry.date)}</td>
+            <td>${entry.event}</td>
+            <td>${entry.workout}</td>
+            <td>${entry.effort}/10</td>
+          `;
+          logTable.appendChild(tr);
+        }
+      };
+
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+
+        const entry = {
+          athlete: document.getElementById("athlete").value.trim(),
+          date: document.getElementById("date").value,
+          event: document.getElementById("event").value,
+          workout: document.getElementById("workout").value.trim(),
+          effort: Number(document.getElementById("effort").value)
+        };
+
+        const entries = getEntries();
+        entries.unshift(entry);
+        saveEntries(entries);
+        form.reset();
+        renderRows();
+      });
+
+      resetBtn.addEventListener("click", () => {
+        localStorage.removeItem(storageKey);
+        renderRows();
+      });
+
+      renderRows();
+    </script>
+  </body>
+</html>
