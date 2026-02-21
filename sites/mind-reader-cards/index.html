@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mind Reader Cards (iPhone App)</title>
+    <style>
+      :root {
+        --bg: #070a12;
+        --bg2: #0f1630;
+        --card: rgba(255, 255, 255, 0.08);
+        --line: rgba(255, 255, 255, 0.22);
+        --text: #f6f8ff;
+        --muted: #b7bfd6;
+        --accent: #f4c84b;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        color: var(--text);
+        font-family: "Avenir Next", "Segoe UI", sans-serif;
+        background:
+          radial-gradient(circle at 20% 0%, #2a3f84 0%, transparent 34%),
+          radial-gradient(circle at 80% 100%, #32173f 0%, transparent 35%),
+          linear-gradient(180deg, var(--bg2), var(--bg));
+      }
+      .wrap {
+        width: min(840px, 92vw);
+        margin: 0 auto;
+        padding: 2rem 0 3rem;
+      }
+      .panel {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 1.1rem 1.1rem;
+        backdrop-filter: blur(6px);
+      }
+      h1 {
+        margin: 0 0 0.4rem;
+        font-size: clamp(1.5rem, 3.4vw, 2.2rem);
+      }
+      p { color: var(--muted); line-height: 1.55; }
+      .meta {
+        margin-top: 1rem;
+        display: grid;
+        gap: 0.65rem;
+      }
+      .chip {
+        display: inline-block;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 0.3rem 0.65rem;
+        color: var(--accent);
+        font-weight: 700;
+        font-size: 0.82rem;
+      }
+      ul { margin: 0.6rem 0 0; padding-left: 1.1rem; color: var(--muted); }
+      li { margin: 0.38rem 0; }
+      a {
+        color: #9ac7ff;
+        text-decoration: none;
+        font-weight: 700;
+      }
+      a:hover { text-decoration: underline; }
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+      <section class="panel">
+        <span class="chip">iPhone SwiftUI App</span>
+        <h1>Mind Reader Cards</h1>
+        <p>
+          A performance-style card magic trick for iPhone: the spectator thinks of one card from a timed set,
+          the app “shuffles” and removes one, then reveals a new set where their card has vanished.
+        </p>
+
+        <div class="meta">
+          <p><strong>Project location:</strong> <code>SquishBuddy/SquishBuddy/ContentView.swift</code></p>
+          <p><strong>Flow:</strong></p>
+          <ul>
+            <li>5-second “think of a card” timer with six cards.</li>
+            <li>Animated shuffle phase with visible card removal.</li>
+            <li>Reveal phase flips five replacement cards one-by-one.</li>
+            <li>Repeat button to run the trick again instantly.</li>
+          </ul>
+          <p>
+            <a href="../">Back to project listings</a>
+          </p>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

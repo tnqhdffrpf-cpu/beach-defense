@@ -33,5 +33,15 @@
     "name": "Oracle Genie",
     "path": "./sites/oracle-genie/",
     "description": "Oracle-themed project site."
+  },
+  {
+    "name": "Wild & Salt Photo Journal",
+    "path": "./sites/wild-surf-gallery/",
+    "description": "Bright surfer-style wildlife and landscape photography showcase."
+  },
+  {
+    "name": "Mind Reader Cards (iPhone App)",
+    "path": "./sites/mind-reader-cards/",
+    "description": "Magic trick app flow: think of a card, shuffle/remove animation, and reveal where your chosen card vanishes."
   }
 ]
