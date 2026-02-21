@@ -1,0 +1,1014 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		4D952ACB2F416E7E002D4256 /* PaceCoachWatch Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 4D952AAB2F416E7D002D4256 /* PaceCoachWatch Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		4D952A862F4166D6002D4256 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4D952A702F4166D5002D4256 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4D952A772F4166D5002D4256;
+			remoteInfo = LiveTranscriptWatch;
+		};
+		4D952A902F4166D6002D4256 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4D952A702F4166D5002D4256 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4D952A772F4166D5002D4256;
+			remoteInfo = LiveTranscriptWatch;
+		};
+		4D952AB82F416E7E002D4256 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4D952A702F4166D5002D4256 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4D952AAA2F416E7D002D4256;
+			remoteInfo = "LiveTranscriptWatch Watch App";
+		};
+		4D952AC22F416E7E002D4256 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4D952A702F4166D5002D4256 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4D952AAA2F416E7D002D4256;
+			remoteInfo = "LiveTranscriptWatch Watch App";
+		};
+		4D952AC92F416E7E002D4256 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4D952A702F4166D5002D4256 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4D952AAA2F416E7D002D4256;
+			remoteInfo = "LiveTranscriptWatch Watch App";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		4D952ACF2F416E7E002D4256 /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				4D952ACB2F416E7E002D4256 /* PaceCoachWatch Watch App.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		4D952A782F4166D5002D4256 /* PaceCoachWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PaceCoachWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4D952A852F4166D6002D4256 /* PaceCoachWatchTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PaceCoachWatchTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		4D952A8F2F4166D6002D4256 /* PaceCoachWatchUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PaceCoachWatchUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		4D952AAB2F416E7D002D4256 /* PaceCoachWatch Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "PaceCoachWatch Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		4D952AB72F416E7E002D4256 /* PaceCoachWatch Watch AppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "PaceCoachWatch Watch AppTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		4D952AC12F416E7E002D4256 /* PaceCoachWatch Watch AppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "PaceCoachWatch Watch AppUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		4D952AA32F4169A2002D4256 /* Exceptions for "LiveTranscriptWatch" folder in "PaceCoachWatch" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 4D952A772F4166D5002D4256 /* PaceCoachWatch */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		4D952A7A2F4166D5002D4256 /* LiveTranscriptWatch */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				4D952AA32F4169A2002D4256 /* Exceptions for "LiveTranscriptWatch" folder in "PaceCoachWatch" target */,
+			);
+			path = LiveTranscriptWatch;
+			sourceTree = "<group>";
+		};
+		4D952A882F4166D6002D4256 /* LiveTranscriptWatchTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = LiveTranscriptWatchTests;
+			sourceTree = "<group>";
+		};
+		4D952A922F4166D6002D4256 /* LiveTranscriptWatchUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = LiveTranscriptWatchUITests;
+			sourceTree = "<group>";
+		};
+		4D952AAC2F416E7D002D4256 /* LiveTranscriptWatch Watch App */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "LiveTranscriptWatch Watch App";
+			sourceTree = "<group>";
+		};
+		4D952ABA2F416E7E002D4256 /* LiveTranscriptWatch Watch AppTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "LiveTranscriptWatch Watch AppTests";
+			sourceTree = "<group>";
+		};
+		4D952AC42F416E7E002D4256 /* LiveTranscriptWatch Watch AppUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "LiveTranscriptWatch Watch AppUITests";
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		4D952A752F4166D5002D4256 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4D952A822F4166D6002D4256 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4D952A8C2F4166D6002D4256 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4D952AA82F416E7D002D4256 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4D952AB42F416E7E002D4256 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4D952ABE2F416E7E002D4256 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		4D952A6F2F4166D5002D4256 = {
+			isa = PBXGroup;
+			children = (
+				4D952A7A2F4166D5002D4256 /* LiveTranscriptWatch */,
+				4D952A882F4166D6002D4256 /* LiveTranscriptWatchTests */,
+				4D952A922F4166D6002D4256 /* LiveTranscriptWatchUITests */,
+				4D952AAC2F416E7D002D4256 /* LiveTranscriptWatch Watch App */,
+				4D952ABA2F416E7E002D4256 /* LiveTranscriptWatch Watch AppTests */,
+				4D952AC42F416E7E002D4256 /* LiveTranscriptWatch Watch AppUITests */,
+				4D952A792F4166D5002D4256 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		4D952A792F4166D5002D4256 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				4D952A782F4166D5002D4256 /* PaceCoachWatch.app */,
+				4D952A852F4166D6002D4256 /* PaceCoachWatchTests.xctest */,
+				4D952A8F2F4166D6002D4256 /* PaceCoachWatchUITests.xctest */,
+				4D952AAB2F416E7D002D4256 /* PaceCoachWatch Watch App.app */,
+				4D952AB72F416E7E002D4256 /* PaceCoachWatch Watch AppTests.xctest */,
+				4D952AC12F416E7E002D4256 /* PaceCoachWatch Watch AppUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		4D952A772F4166D5002D4256 /* PaceCoachWatch */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4D952A992F4166D6002D4256 /* Build configuration list for PBXNativeTarget "PaceCoachWatch" */;
+			buildPhases = (
+				4D952A742F4166D5002D4256 /* Sources */,
+				4D952A752F4166D5002D4256 /* Frameworks */,
+				4D952A762F4166D5002D4256 /* Resources */,
+				4D952ACF2F416E7E002D4256 /* Embed Watch Content */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				4D952ACA2F416E7E002D4256 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				4D952A7A2F4166D5002D4256 /* LiveTranscriptWatch */,
+			);
+			name = PaceCoachWatch;
+			packageProductDependencies = (
+			);
+			productName = LiveTranscriptWatch;
+			productReference = 4D952A782F4166D5002D4256 /* PaceCoachWatch.app */;
+			productType = "com.apple.product-type.application";
+		};
+		4D952A842F4166D6002D4256 /* PaceCoachWatchTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4D952A9C2F4166D6002D4256 /* Build configuration list for PBXNativeTarget "PaceCoachWatchTests" */;
+			buildPhases = (
+				4D952A812F4166D6002D4256 /* Sources */,
+				4D952A822F4166D6002D4256 /* Frameworks */,
+				4D952A832F4166D6002D4256 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				4D952A872F4166D6002D4256 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				4D952A882F4166D6002D4256 /* LiveTranscriptWatchTests */,
+			);
+			name = PaceCoachWatchTests;
+			packageProductDependencies = (
+			);
+			productName = LiveTranscriptWatchTests;
+			productReference = 4D952A852F4166D6002D4256 /* PaceCoachWatchTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		4D952A8E2F4166D6002D4256 /* PaceCoachWatchUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4D952A9F2F4166D6002D4256 /* Build configuration list for PBXNativeTarget "PaceCoachWatchUITests" */;
+			buildPhases = (
+				4D952A8B2F4166D6002D4256 /* Sources */,
+				4D952A8C2F4166D6002D4256 /* Frameworks */,
+				4D952A8D2F4166D6002D4256 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				4D952A912F4166D6002D4256 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				4D952A922F4166D6002D4256 /* LiveTranscriptWatchUITests */,
+			);
+			name = PaceCoachWatchUITests;
+			packageProductDependencies = (
+			);
+			productName = LiveTranscriptWatchUITests;
+			productReference = 4D952A8F2F4166D6002D4256 /* PaceCoachWatchUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+		4D952AAA2F416E7D002D4256 /* PaceCoachWatch Watch App */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4D952ACC2F416E7E002D4256 /* Build configuration list for PBXNativeTarget "PaceCoachWatch Watch App" */;
+			buildPhases = (
+				4D952AA72F416E7D002D4256 /* Sources */,
+				4D952AA82F416E7D002D4256 /* Frameworks */,
+				4D952AA92F416E7D002D4256 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				4D952AAC2F416E7D002D4256 /* LiveTranscriptWatch Watch App */,
+			);
+			name = "PaceCoachWatch Watch App";
+			packageProductDependencies = (
+			);
+			productName = "LiveTranscriptWatch Watch App";
+			productReference = 4D952AAB2F416E7D002D4256 /* PaceCoachWatch Watch App.app */;
+			productType = "com.apple.product-type.application";
+		};
+		4D952AB62F416E7E002D4256 /* PaceCoachWatch Watch AppTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4D952AD02F416E7E002D4256 /* Build configuration list for PBXNativeTarget "PaceCoachWatch Watch AppTests" */;
+			buildPhases = (
+				4D952AB32F416E7E002D4256 /* Sources */,
+				4D952AB42F416E7E002D4256 /* Frameworks */,
+				4D952AB52F416E7E002D4256 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				4D952AB92F416E7E002D4256 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				4D952ABA2F416E7E002D4256 /* LiveTranscriptWatch Watch AppTests */,
+			);
+			name = "PaceCoachWatch Watch AppTests";
+			packageProductDependencies = (
+			);
+			productName = "LiveTranscriptWatch Watch AppTests";
+			productReference = 4D952AB72F416E7E002D4256 /* PaceCoachWatch Watch AppTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		4D952AC02F416E7E002D4256 /* PaceCoachWatch Watch AppUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4D952AD32F416E7E002D4256 /* Build configuration list for PBXNativeTarget "PaceCoachWatch Watch AppUITests" */;
+			buildPhases = (
+				4D952ABD2F416E7E002D4256 /* Sources */,
+				4D952ABE2F416E7E002D4256 /* Frameworks */,
+				4D952ABF2F416E7E002D4256 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				4D952AC32F416E7E002D4256 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				4D952AC42F416E7E002D4256 /* LiveTranscriptWatch Watch AppUITests */,
+			);
+			name = "PaceCoachWatch Watch AppUITests";
+			packageProductDependencies = (
+			);
+			productName = "LiveTranscriptWatch Watch AppUITests";
+			productReference = 4D952AC12F416E7E002D4256 /* PaceCoachWatch Watch AppUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		4D952A702F4166D5002D4256 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2620;
+				LastUpgradeCheck = 2620;
+				TargetAttributes = {
+					4D952A772F4166D5002D4256 = {
+						CreatedOnToolsVersion = 26.2;
+					};
+					4D952A842F4166D6002D4256 = {
+						CreatedOnToolsVersion = 26.2;
+						TestTargetID = 4D952A772F4166D5002D4256;
+					};
+					4D952A8E2F4166D6002D4256 = {
+						CreatedOnToolsVersion = 26.2;
+						TestTargetID = 4D952A772F4166D5002D4256;
+					};
+					4D952AAA2F416E7D002D4256 = {
+						CreatedOnToolsVersion = 26.2;
+					};
+					4D952AB62F416E7E002D4256 = {
+						CreatedOnToolsVersion = 26.2;
+						TestTargetID = 4D952AAA2F416E7D002D4256;
+					};
+					4D952AC02F416E7E002D4256 = {
+						CreatedOnToolsVersion = 26.2;
+						TestTargetID = 4D952AAA2F416E7D002D4256;
+					};
+				};
+			};
+			buildConfigurationList = 4D952A732F4166D5002D4256 /* Build configuration list for PBXProject "PaceCoachWatch" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 4D952A6F2F4166D5002D4256;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 4D952A792F4166D5002D4256 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				4D952A772F4166D5002D4256 /* PaceCoachWatch */,
+				4D952A842F4166D6002D4256 /* PaceCoachWatchTests */,
+				4D952A8E2F4166D6002D4256 /* PaceCoachWatchUITests */,
+				4D952AAA2F416E7D002D4256 /* PaceCoachWatch Watch App */,
+				4D952AB62F416E7E002D4256 /* PaceCoachWatch Watch AppTests */,
+				4D952AC02F416E7E002D4256 /* PaceCoachWatch Watch AppUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		4D952A762F4166D5002D4256 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4D952A832F4166D6002D4256 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4D952A8D2F4166D6002D4256 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4D952AA92F416E7D002D4256 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4D952AB52F416E7E002D4256 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4D952ABF2F416E7E002D4256 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		4D952A742F4166D5002D4256 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4D952A812F4166D6002D4256 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4D952A8B2F4166D6002D4256 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4D952AA72F416E7D002D4256 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4D952AB32F416E7E002D4256 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4D952ABD2F416E7E002D4256 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		4D952A872F4166D6002D4256 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4D952A772F4166D5002D4256 /* PaceCoachWatch */;
+			targetProxy = 4D952A862F4166D6002D4256 /* PBXContainerItemProxy */;
+		};
+		4D952A912F4166D6002D4256 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4D952A772F4166D5002D4256 /* PaceCoachWatch */;
+			targetProxy = 4D952A902F4166D6002D4256 /* PBXContainerItemProxy */;
+		};
+		4D952AB92F416E7E002D4256 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4D952AAA2F416E7D002D4256 /* PaceCoachWatch Watch App */;
+			targetProxy = 4D952AB82F416E7E002D4256 /* PBXContainerItemProxy */;
+		};
+		4D952AC32F416E7E002D4256 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4D952AAA2F416E7D002D4256 /* PaceCoachWatch Watch App */;
+			targetProxy = 4D952AC22F416E7E002D4256 /* PBXContainerItemProxy */;
+		};
+		4D952ACA2F416E7E002D4256 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4D952AAA2F416E7D002D4256 /* PaceCoachWatch Watch App */;
+			targetProxy = 4D952AC92F416E7E002D4256 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		4D952A972F4166D6002D4256 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = JVQ6ES846M;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		4D952A982F4166D6002D4256 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = JVQ6ES846M;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		4D952A9A2F4166D6002D4256 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = LiveTranscriptWatch/LiveTranscriptWatch.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = JVQ6ES846M;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = LiveTranscriptWatch/Info.plist;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.bwillyard.BeeBuzzWatch;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		4D952A9B2F4166D6002D4256 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = LiveTranscriptWatch/LiveTranscriptWatch.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = JVQ6ES846M;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = LiveTranscriptWatch/Info.plist;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.bwillyard.BeeBuzzWatch;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		4D952A9D2F4166D6002D4256 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.bwillyard.BeeBuzzWatch;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/PaceCoachWatch.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/PaceCoachWatch";
+			};
+			name = Debug;
+		};
+		4D952A9E2F4166D6002D4256 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.bwillyard.BeeBuzzWatch;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/PaceCoachWatch.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/PaceCoachWatch";
+			};
+			name = Release;
+		};
+		4D952AA02F4166D6002D4256 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = JVQ6ES846M;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.bwillyard.BeeBuzzWatch;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = LiveTranscriptWatch;
+			};
+			name = Debug;
+		};
+		4D952AA12F4166D6002D4256 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = JVQ6ES846M;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.bwillyard.BeeBuzzWatch;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = LiveTranscriptWatch;
+			};
+			name = Release;
+		};
+		4D952ACD2F416E7E002D4256 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = JVQ6ES846M;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "LiveTranscriptWatch Watch App";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Location is used to calculate your live pace during walks and runs.";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.bwillyard.BeeBuzzWatch;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.bwillyard.BeeBuzzWatch.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.2;
+			};
+			name = Debug;
+		};
+		4D952ACE2F416E7E002D4256 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = JVQ6ES846M;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "LiveTranscriptWatch Watch App";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Location is used to calculate your live pace during walks and runs.";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.bwillyard.BeeBuzzWatch;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.bwillyard.BeeBuzzWatch.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.2;
+			};
+			name = Release;
+		};
+		4D952AD12F416E7E002D4256 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = JVQ6ES846M;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.bwillyard.LiveTranscriptWatch-Watch-AppTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/PaceCoachWatch Watch App.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/PaceCoachWatch Watch App";
+				WATCHOS_DEPLOYMENT_TARGET = 26.2;
+			};
+			name = Debug;
+		};
+		4D952AD22F416E7E002D4256 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = JVQ6ES846M;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.bwillyard.LiveTranscriptWatch-Watch-AppTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/PaceCoachWatch Watch App.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/PaceCoachWatch Watch App";
+				WATCHOS_DEPLOYMENT_TARGET = 26.2;
+			};
+			name = Release;
+		};
+		4D952AD42F416E7E002D4256 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = JVQ6ES846M;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.bwillyard.LiveTranscriptWatch-Watch-AppUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_TARGET_NAME = "LiveTranscriptWatch Watch App";
+				WATCHOS_DEPLOYMENT_TARGET = 26.2;
+			};
+			name = Debug;
+		};
+		4D952AD52F416E7E002D4256 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = JVQ6ES846M;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.bwillyard.LiveTranscriptWatch-Watch-AppUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_TARGET_NAME = "LiveTranscriptWatch Watch App";
+				WATCHOS_DEPLOYMENT_TARGET = 26.2;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		4D952A732F4166D5002D4256 /* Build configuration list for PBXProject "PaceCoachWatch" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4D952A972F4166D6002D4256 /* Debug */,
+				4D952A982F4166D6002D4256 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4D952A992F4166D6002D4256 /* Build configuration list for PBXNativeTarget "PaceCoachWatch" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4D952A9A2F4166D6002D4256 /* Debug */,
+				4D952A9B2F4166D6002D4256 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4D952A9C2F4166D6002D4256 /* Build configuration list for PBXNativeTarget "PaceCoachWatchTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4D952A9D2F4166D6002D4256 /* Debug */,
+				4D952A9E2F4166D6002D4256 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4D952A9F2F4166D6002D4256 /* Build configuration list for PBXNativeTarget "PaceCoachWatchUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4D952AA02F4166D6002D4256 /* Debug */,
+				4D952AA12F4166D6002D4256 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4D952ACC2F416E7E002D4256 /* Build configuration list for PBXNativeTarget "PaceCoachWatch Watch App" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4D952ACD2F416E7E002D4256 /* Debug */,
+				4D952ACE2F416E7E002D4256 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4D952AD02F416E7E002D4256 /* Build configuration list for PBXNativeTarget "PaceCoachWatch Watch AppTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4D952AD12F416E7E002D4256 /* Debug */,
+				4D952AD22F416E7E002D4256 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4D952AD32F416E7E002D4256 /* Build configuration list for PBXNativeTarget "PaceCoachWatch Watch AppUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4D952AD42F416E7E002D4256 /* Debug */,
+				4D952AD52F416E7E002D4256 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 4D952A702F4166D5002D4256 /* Project object */;
+}

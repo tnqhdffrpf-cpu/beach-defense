@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>NSAppTransportSecurity</key>
+	<dict/>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>The app uses your microphone to transcribe speech and show it on Apple Watch.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>The app converts your speech into live text for Apple Watch.</string>
+</dict>
+</plist>

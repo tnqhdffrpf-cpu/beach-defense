@@ -43,5 +43,10 @@
     "name": "Mind Reader Cards (iPhone App)",
     "path": "./sites/mind-reader-cards/",
     "description": "Magic trick app flow: think of a card, shuffle/remove animation, and reveal where your chosen card vanishes."
+  },
+  {
+    "name": "Birthday Decoder",
+    "path": "./sites/birthday-decoder/",
+    "description": "Classic math mind-reading trick that decodes month and day from one final number."
   }
 ]

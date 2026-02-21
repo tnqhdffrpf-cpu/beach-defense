@@ -1,0 +1,613 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wild & Salt | Photo Builder</title>
+  <meta name="description" content="Drag-and-drop wildlife and landscape photo builder with EXIF captions and optional AI subject suggestions.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --sand: #ffe7b4;
+      --seafoam: #89f8d7;
+      --sunset: #ff8c73;
+      --sky: #72c7ff;
+      --reef: #0f4f64;
+      --ink: #123143;
+      --paper: rgba(255, 255, 255, 0.76);
+      --line: rgba(17, 68, 86, 0.2);
+      --shadow: 0 18px 42px rgba(15, 79, 100, 0.2);
+      --radius: 18px;
+      --maxw: 1160px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Space Grotesk", "Trebuchet MS", sans-serif;
+      color: var(--ink);
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 12% 6%, #fff1b2, transparent 34%),
+        radial-gradient(circle at 84% 10%, #89f7ff, transparent 33%),
+        linear-gradient(145deg, #ffc8ad 0%, #ffe79d 26%, #9cf2dd 56%, #84cbff 100%);
+      overflow-x: hidden;
+    }
+
+    body::before,
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    body::before {
+      background-size: 72px 72px;
+      background-image:
+        linear-gradient(330deg, rgba(255, 255, 255, 0.28) 18%, transparent 18%),
+        linear-gradient(30deg, rgba(15, 79, 100, 0.08) 15%, transparent 15%);
+      mix-blend-mode: soft-light;
+    }
+
+    body::after {
+      background:
+        repeating-linear-gradient(90deg, transparent 0 24px, rgba(255, 255, 255, 0.15) 24px 25px),
+        linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.22));
+      opacity: 0.65;
+    }
+
+    .wrap {
+      width: min(var(--maxw), calc(100% - 2rem));
+      margin-inline: auto;
+      padding-bottom: 3rem;
+    }
+
+    .hero {
+      padding: clamp(2.2rem, 8vw, 4.8rem) 0 1.6rem;
+      display: grid;
+      gap: 1rem;
+    }
+
+    .hero-card,
+    .builder,
+    .foot {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(8px);
+    }
+
+    .hero-card {
+      padding: clamp(1.1rem, 3vw, 1.9rem);
+      animation: rise 700ms ease both;
+    }
+
+    .kicker {
+      margin: 0;
+      font-family: "Bungee", "Impact", sans-serif;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      font-size: 0.8rem;
+      color: var(--reef);
+    }
+
+    h1 {
+      margin: 0.35rem 0 0;
+      font-family: "Bungee", "Impact", sans-serif;
+      line-height: 1;
+      letter-spacing: 0.03em;
+      font-size: clamp(1.8rem, 7vw, 3.7rem);
+      color: #0f3f54;
+      text-wrap: balance;
+    }
+
+    .hero-copy {
+      margin: 0.78rem 0 0;
+      max-width: 70ch;
+      color: #1d445a;
+      font-size: clamp(0.95rem, 2.2vw, 1.08rem);
+    }
+
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.9rem;
+    }
+
+    .tag {
+      display: inline-flex;
+      padding: 0.38rem 0.68rem;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 0.78rem;
+      border: 1px solid rgba(11, 65, 84, 0.22);
+      background: rgba(255, 255, 255, 0.6);
+    }
+
+    .pattern-band {
+      margin-top: 0.8rem;
+      height: 20px;
+      border-radius: 999px;
+      border: 1px solid rgba(15, 79, 100, 0.24);
+      background:
+        linear-gradient(60deg, #ff9b72 10%, transparent 10% 50%, #ff9b72 50% 60%, transparent 60%),
+        linear-gradient(-60deg, #84d0ff 10%, transparent 10% 50%, #84d0ff 50% 60%, transparent 60%),
+        linear-gradient(0deg, #9ef4dd, #9ef4dd);
+      background-size: 38px 100%, 38px 100%, 100% 100%;
+      background-position: 0 0, 19px 0, 0 0;
+    }
+
+    .builder {
+      margin-top: 1rem;
+      padding: 1rem;
+    }
+
+    .dropzone {
+      border: 2px dashed rgba(15, 78, 100, 0.35);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.62);
+      min-height: 120px;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      padding: 1rem;
+      transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+      cursor: pointer;
+    }
+
+    .dropzone.active {
+      transform: translateY(-1px);
+      border-color: rgba(7, 122, 158, 0.8);
+      background: rgba(150, 245, 255, 0.32);
+    }
+
+    .drop-title {
+      margin: 0;
+      font-family: "Bungee", "Impact", sans-serif;
+      font-size: 1rem;
+      letter-spacing: 0.04em;
+      color: #18485d;
+    }
+
+    .drop-sub {
+      margin: 0.45rem 0 0;
+      color: #25586e;
+      font-size: 0.9rem;
+    }
+
+    .builder-row {
+      margin-top: 0.85rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .btn {
+      border: 1px solid rgba(15, 70, 90, 0.22);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.72);
+      color: #18485d;
+      font-weight: 700;
+      font-family: inherit;
+      padding: 0.5rem 0.85rem;
+      cursor: pointer;
+    }
+
+    .btn:hover { background: rgba(255, 255, 255, 0.9); }
+
+    .status {
+      color: #25576d;
+      font-size: 0.88rem;
+    }
+
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1rem;
+      margin-top: 1.2rem;
+    }
+
+    .shot {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.78);
+      border: 1px solid var(--line);
+      box-shadow: 0 10px 22px rgba(17, 73, 94, 0.16);
+      overflow: hidden;
+      animation: reveal 500ms ease both;
+    }
+
+    .shot img {
+      width: 100%;
+      aspect-ratio: 4 / 5;
+      object-fit: cover;
+      background: linear-gradient(135deg, #a0ecff, #ffe5be);
+    }
+
+    .shot-copy { padding: 0.75rem 0.9rem 0.95rem; }
+
+    .shot h2 {
+      margin: 0;
+      font-size: 1rem;
+      font-family: "Bungee", "Impact", sans-serif;
+      font-weight: 400;
+      letter-spacing: 0.04em;
+      color: #19495e;
+    }
+
+    .meta {
+      margin: 0.45rem 0 0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+    }
+
+    .chip {
+      font-size: 0.75rem;
+      padding: 0.2rem 0.45rem;
+      border-radius: 999px;
+      border: 1px solid rgba(10, 63, 84, 0.2);
+      color: #205067;
+      background: rgba(255, 255, 255, 0.76);
+    }
+
+    .shot p {
+      margin: 0.5rem 0 0;
+      color: #28556b;
+      font-size: 0.86rem;
+      line-height: 1.4;
+    }
+
+    .foot {
+      margin-top: 1.3rem;
+      padding: 0.9rem 1rem;
+      color: #244c62;
+      font-size: 0.88rem;
+    }
+
+    .muted { color: #2a5c71; opacity: 0.8; }
+
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes reveal {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 700px) {
+      .wrap { width: min(var(--maxw), calc(100% - 1rem)); }
+      .shot img { aspect-ratio: 1 / 1; }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="hero">
+      <article class="hero-card">
+        <p class="kicker">Wildlife + Landscape Journal</p>
+        <h1>Wild &amp; Salt Builder</h1>
+        <p class="hero-copy">Drag photos from Finder into the drop zone. The page reads EXIF details for camera/lens/date and tries to suggest a subject + title from image content. It is built to feel artsy and personal, not commercial.</p>
+        <div class="tag-row">
+          <span class="tag">Drag + Drop</span>
+          <span class="tag">EXIF Captions</span>
+          <span class="tag">AI Title Suggestions</span>
+          <span class="tag">Surfer Theme</span>
+        </div>
+        <div class="pattern-band" aria-hidden="true"></div>
+      </article>
+    </section>
+
+    <section class="builder" aria-label="Photo builder controls">
+      <div id="dropzone" class="dropzone" role="button" tabindex="0" aria-label="Drop photos here or click to choose files">
+        <div>
+          <p class="drop-title">Drop photos here</p>
+          <p class="drop-sub">or click to pick JPG/PNG/WEBP files</p>
+        </div>
+      </div>
+      <div class="builder-row">
+        <div>
+          <button id="pickBtn" class="btn" type="button">Choose Photos</button>
+          <button id="clearBtn" class="btn" type="button">Clear Gallery</button>
+        </div>
+        <div id="status" class="status">Ready.</div>
+      </div>
+      <input id="fileInput" type="file" accept="image/*" multiple hidden>
+    </section>
+
+    <section class="gallery" id="gallery" aria-label="Generated photo cards"></section>
+
+    <section class="foot">
+      <div><strong>Publish tip:</strong> browser pages cannot directly write files into your repo folder. After drop + review, place chosen photos in <code>photos/</code> for permanent hosting, then keep this page in GitHub Pages.</div>
+      <div class="muted">AI subject detection runs in-browser and may be unavailable offline or inaccurate for rare species.</div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/exifr/dist/lite.umd.js"></script>
+  <script>
+    const dropzone = document.getElementById("dropzone");
+    const fileInput = document.getElementById("fileInput");
+    const pickBtn = document.getElementById("pickBtn");
+    const clearBtn = document.getElementById("clearBtn");
+    const gallery = document.getElementById("gallery");
+    const statusEl = document.getElementById("status");
+
+    let detector = null;
+    let detectorState = "idle";
+    const objectUrls = new Set();
+
+    function setStatus(text) {
+      statusEl.textContent = text;
+    }
+
+    function formatExposureTime(v) {
+      if (!v) return "";
+      if (v >= 1) return `${v.toFixed(1).replace(/\.0$/, "")}s`;
+      const denom = Math.round(1 / v);
+      return denom > 1 ? `1/${denom}s` : `${v.toFixed(3)}s`;
+    }
+
+    function formatDate(dateRaw) {
+      if (!dateRaw) return "";
+      const date = dateRaw instanceof Date ? dateRaw : new Date(dateRaw);
+      if (Number.isNaN(date.getTime())) return "";
+      return new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(date);
+    }
+
+    function getMetadataChips(exif) {
+      const chips = [];
+      if (!exif) return chips;
+
+      const lens = exif.LensModel || exif.LensInfo;
+      if (lens) chips.push(String(lens));
+
+      const focal = exif.FocalLengthIn35mmFormat || exif.FocalLength;
+      if (focal) chips.push(`${Math.round(Number(focal))}mm`);
+
+      if (exif.FNumber) chips.push(`f/${Number(exif.FNumber).toFixed(1).replace(/\.0$/, "")}`);
+      if (exif.ExposureTime) chips.push(formatExposureTime(Number(exif.ExposureTime)));
+      if (exif.ISO) chips.push(`ISO ${exif.ISO}`);
+
+      const dateText = formatDate(exif.DateTimeOriginal || exif.CreateDate || exif.ModifyDate);
+      if (dateText) chips.push(dateText);
+
+      return chips;
+    }
+
+    function asTitleCase(text) {
+      return text
+        .split(/\s+/)
+        .filter(Boolean)
+        .map((t) => t.charAt(0).toUpperCase() + t.slice(1))
+        .join(" ");
+    }
+
+    function titleFromSubject(subject, exif) {
+      const date = exif ? (exif.DateTimeOriginal || exif.CreateDate) : null;
+      const d = date ? new Date(date) : null;
+      const hour = d && !Number.isNaN(d.getTime()) ? d.getHours() : null;
+
+      let lightWord = "Light";
+      if (hour !== null) {
+        if (hour < 7) lightWord = "First Light";
+        else if (hour < 11) lightWord = "Morning Light";
+        else if (hour < 16) lightWord = "Midday Drift";
+        else if (hour < 19) lightWord = "Golden Light";
+        else lightWord = "Blue Hour";
+      }
+
+      if (subject) {
+        const pretty = asTitleCase(subject);
+        if (/bird|puffin|eagle|hawk|owl|heron/i.test(pretty)) return `${pretty} in ${lightWord}`;
+        if (/beach|coast|ocean|sea|wave|surf/i.test(pretty)) return `${lightWord} at the ${pretty}`;
+        if (/mountain|cliff|rock|forest|river|lake/i.test(pretty)) return `${pretty} Under ${lightWord}`;
+        return `${pretty} Study`;
+      }
+
+      return `${lightWord} Field Note`;
+    }
+
+    async function loadDetector() {
+      if (detectorState === "ready") return detector;
+      if (detectorState === "loading") return null;
+
+      detectorState = "loading";
+      setStatus("Loading in-browser subject model...");
+      try {
+        await addScript("https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js");
+        await addScript("https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.1/dist/mobilenet.min.js");
+        detector = await mobilenet.load({ version: 2, alpha: 1.0 });
+        detectorState = "ready";
+        setStatus("AI subject model ready.");
+        return detector;
+      } catch (err) {
+        detectorState = "error";
+        setStatus("AI subject model unavailable. EXIF captions still work.");
+        return null;
+      }
+    }
+
+    function addScript(src) {
+      return new Promise((resolve, reject) => {
+        if (document.querySelector(`script[src='${src}']`)) {
+          resolve();
+          return;
+        }
+        const script = document.createElement("script");
+        script.src = src;
+        script.async = true;
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error(`Failed loading ${src}`));
+        document.head.append(script);
+      });
+    }
+
+    async function detectSubject(imageEl) {
+      const model = await loadDetector();
+      if (!model) return "";
+
+      try {
+        const results = await model.classify(imageEl);
+        if (!results || !results.length) return "";
+        const top = results[0];
+        if (typeof top.probability === "number" && top.probability < 0.25) return "";
+        return top.className.split(",")[0].trim();
+      } catch {
+        return "";
+      }
+    }
+
+    function waitForImage(imageEl) {
+      if (imageEl.complete && imageEl.naturalWidth > 0) return Promise.resolve();
+      return new Promise((resolve) => {
+        imageEl.onload = () => resolve();
+        imageEl.onerror = () => resolve();
+      });
+    }
+
+    function createCard({ src, title, note, chips, filename }) {
+      const card = document.createElement("article");
+      card.className = "shot";
+
+      const img = document.createElement("img");
+      img.src = src;
+      img.alt = title || filename || "Photo";
+      img.loading = "lazy";
+      img.decoding = "async";
+
+      const copy = document.createElement("div");
+      copy.className = "shot-copy";
+
+      const h2 = document.createElement("h2");
+      h2.textContent = title || filename || "Untitled Frame";
+
+      const meta = document.createElement("div");
+      meta.className = "meta";
+      (chips || []).forEach((chip) => {
+        const span = document.createElement("span");
+        span.className = "chip";
+        span.textContent = chip;
+        meta.append(span);
+      });
+
+      const p = document.createElement("p");
+      p.textContent = note || "No EXIF details found for this image.";
+
+      copy.append(h2, meta, p);
+      card.append(img, copy);
+      gallery.prepend(card);
+      return { card, img };
+    }
+
+    async function processFile(file) {
+      if (!file.type.startsWith("image/")) return;
+
+      setStatus(`Reading ${file.name}...`);
+      const objectUrl = URL.createObjectURL(file);
+      objectUrls.add(objectUrl);
+
+      let exif = null;
+      try {
+        exif = await exifr.parse(file, { tiff: true, ifd0: true, exif: true, gps: true });
+      } catch {
+        exif = null;
+      }
+
+      const chips = getMetadataChips(exif);
+      const camera = exif ? (exif.Model || exif.Make || "") : "";
+      const lens = exif ? (exif.LensModel || "") : "";
+      const note = [camera, lens].filter(Boolean).join(" | ") || "Metadata found in EXIF chips above.";
+
+      const baseTitle = file.name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ");
+      const { img } = createCard({
+        src: objectUrl,
+        title: asTitleCase(baseTitle),
+        note,
+        chips,
+        filename: file.name
+      });
+
+      await waitForImage(img);
+      const subject = await detectSubject(img);
+      const suggestedTitle = titleFromSubject(subject, exif);
+      img.alt = suggestedTitle;
+
+      const titleEl = img.parentElement.querySelector("h2");
+      if (titleEl) titleEl.textContent = suggestedTitle;
+
+      const noteEl = img.parentElement.querySelector("p");
+      if (noteEl) {
+        noteEl.textContent = subject
+          ? `AI guess: ${subject}. ${note}`
+          : `AI guess unavailable. ${note}`;
+      }
+
+      setStatus(`Added ${file.name}`);
+    }
+
+    async function processFiles(fileList) {
+      const files = Array.from(fileList || []);
+      if (!files.length) return;
+
+      setStatus(`Processing ${files.length} photo(s)...`);
+      for (const file of files) {
+        await processFile(file);
+      }
+      setStatus(`Done. Added ${files.length} photo(s).`);
+    }
+
+    function clearGallery() {
+      gallery.innerHTML = "";
+      objectUrls.forEach((url) => URL.revokeObjectURL(url));
+      objectUrls.clear();
+      setStatus("Gallery cleared.");
+    }
+
+    function onDrop(evt) {
+      evt.preventDefault();
+      dropzone.classList.remove("active");
+      processFiles(evt.dataTransfer.files);
+    }
+
+    function onDragOver(evt) {
+      evt.preventDefault();
+      dropzone.classList.add("active");
+    }
+
+    function onDragLeave() {
+      dropzone.classList.remove("active");
+    }
+
+    dropzone.addEventListener("click", () => fileInput.click());
+    pickBtn.addEventListener("click", () => fileInput.click());
+    clearBtn.addEventListener("click", clearGallery);
+
+    dropzone.addEventListener("dragover", onDragOver);
+    dropzone.addEventListener("dragleave", onDragLeave);
+    dropzone.addEventListener("drop", onDrop);
+
+    dropzone.addEventListener("keydown", (evt) => {
+      if (evt.key === "Enter" || evt.key === " ") {
+        evt.preventDefault();
+        fileInput.click();
+      }
+    });
+
+    fileInput.addEventListener("change", () => processFiles(fileInput.files));
+
+    setStatus("Ready. Drop your first photo.");
+  </script>
+</body>
+</html>

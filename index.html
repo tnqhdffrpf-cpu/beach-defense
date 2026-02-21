@@ -87,26 +87,72 @@
     </main>
 
     <script>
+      const fallbackProjects = [
+        {
+          name: "VR Numerology Bot",
+          path: "./sites/numerology-bot/",
+          description: "iPhone-friendly camera app that reads numbers and returns humorous numerology readings."
+        },
+        {
+          name: "VR Water Gun",
+          path: "./sites/vr-water-gun/",
+          description: "Quest-friendly WebXR cowboy target shooter with 60-second rounds, accuracy scoring, and high score."
+        },
+        {
+          name: "Escape Room",
+          path: "./sites/escape-room/",
+          description: "Story-based escape puzzle with interactive clues, safe keypad, and timed ending."
+        },
+        {
+          name: "Beach Defense",
+          path: "./sites/beach-defense/",
+          description: "Arcade-style coastal defense game."
+        },
+        {
+          name: "Harrisburg Track Hub",
+          path: "./sites/harrisburg-track-hub/",
+          description: "Track-and-field info hub site."
+        },
+        {
+          name: "Cannon Beach Surf",
+          path: "./sites/cannon-beach-surf/",
+          description: "Surf lessons landing page redesign."
+        },
+        {
+          name: "Oracle Genie",
+          path: "./sites/oracle-genie/",
+          description: "Oracle-themed project site."
+        },
+        {
+          name: "Wild & Salt Photo Journal",
+          path: "./sites/wild-surf-gallery/",
+          description: "Bright surfer-style wildlife and landscape photography showcase."
+        }
+      ];
+
+      function renderProjects(grid, projects) {
+        grid.innerHTML = projects
+          .map(
+            (project) => `
+              <a class="card" href="${project.path}">
+                <div class="title">${project.name}</div>
+                <div class="desc">${project.description || ""}</div>
+                <div class="path">${project.path}</div>
+              </a>
+            `
+          )
+          .join("");
+      }
+
       async function loadProjects() {
         const grid = document.getElementById("projectGrid");
         try {
           const response = await fetch("./sites/projects.json", { cache: "no-store" });
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
           const projects = await response.json();
-
-          grid.innerHTML = projects
-            .map(
-              (project) => `
-                <a class="card" href="${project.path}">
-                  <div class="title">${project.name}</div>
-                  <div class="desc">${project.description || ""}</div>
-                  <div class="path">${project.path}</div>
-                </a>
-              `
-            )
-            .join("");
+          renderProjects(grid, projects);
         } catch (error) {
-          grid.innerHTML =
-            '<p style="color:#fca5a5;">Could not load project list. Check <code>sites/projects.json</code>.</p>';
+          renderProjects(grid, fallbackProjects);
         }
       }
 
