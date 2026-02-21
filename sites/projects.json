@@ -48,5 +48,10 @@
     "name": "Birthday Decoder",
     "path": "./sites/birthday-decoder/",
     "description": "Classic math mind-reading trick that decodes month and day from one final number."
+  },
+  {
+    "name": "Binary Birthday Oracle Cards",
+    "path": "./sites/binary-birthday-oracle/",
+    "description": "Mind-reading yes/no oracle cards decode day (and optional month) using classic binary magic."
   }
 ]

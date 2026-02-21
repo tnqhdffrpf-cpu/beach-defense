@@ -1,0 +1,489 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Binary Birthday Oracle Cards</title>
+    <style>
+      :root {
+        --bg1: #12091f;
+        --bg2: #05070f;
+        --panel: rgba(255, 255, 255, 0.08);
+        --line: rgba(255, 255, 255, 0.16);
+        --text: #eef2ff;
+        --muted: #b8bbd9;
+        --gold: #f7cc63;
+        --violet: #9f7bff;
+        --mint: #86f0c9;
+      }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; }
+      body {
+        margin: 0;
+        font-family: "Avenir Next", "Segoe UI", sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(circle at 8% 12%, rgba(159, 123, 255, 0.35), transparent 34%),
+          radial-gradient(circle at 88% 88%, rgba(56, 113, 228, 0.26), transparent 36%),
+          linear-gradient(180deg, var(--bg1), var(--bg2));
+      }
+      .app {
+        min-height: 100%;
+        width: min(980px, 96vw);
+        margin: 0 auto;
+        padding: 0.9rem 0 1.4rem;
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+        gap: 0.8rem;
+      }
+      .topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.8rem;
+      }
+      h1 {
+        margin: 0;
+        font-size: clamp(1.3rem, 2.8vw, 2rem);
+      }
+      .sub {
+        margin: 0.25rem 0 0;
+        color: var(--muted);
+      }
+      .pill {
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 0.35rem 0.7rem;
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: var(--gold);
+        background: rgba(247, 204, 99, 0.12);
+      }
+
+      .oracle {
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        background: var(--panel);
+        backdrop-filter: blur(8px);
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+        overflow: hidden;
+        min-height: 520px;
+        position: relative;
+      }
+      .oracle-head {
+        padding: 0.9rem 1rem 0.4rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .oracle-title {
+        margin: 0;
+        font-size: clamp(1rem, 2.2vw, 1.25rem);
+      }
+      .progress {
+        height: 7px;
+        border-radius: 999px;
+        margin-top: 0.55rem;
+        background: rgba(255, 255, 255, 0.16);
+        overflow: hidden;
+      }
+      .progress > span {
+        display: block;
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, var(--violet), #69d5ff);
+        transition: width 240ms ease;
+      }
+      .card-stage {
+        padding: 0.8rem;
+        display: grid;
+      }
+      .oracle-card {
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.26);
+        background:
+          radial-gradient(circle at 16% 18%, rgba(255, 255, 255, 0.11), transparent 34%),
+          radial-gradient(circle at 78% 78%, rgba(116, 208, 255, 0.14), transparent 36%),
+          linear-gradient(145deg, rgba(19, 24, 48, 0.95), rgba(30, 20, 50, 0.94));
+        position: relative;
+        overflow: hidden;
+        padding: 0.8rem;
+      }
+      .oracle-card::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-image: radial-gradient(rgba(255,255,255,0.2) 0.6px, transparent 0.6px);
+        background-size: 12px 12px;
+        opacity: 0.22;
+        pointer-events: none;
+      }
+      .card-tag {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 2;
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        border-radius: 999px;
+        padding: 0.26rem 0.58rem;
+        font-size: 0.78rem;
+        color: var(--gold);
+        font-weight: 800;
+        background: rgba(247, 204, 99, 0.12);
+      }
+      .nums {
+        position: absolute;
+        inset: 0.75rem;
+        z-index: 1;
+      }
+      .num {
+        position: absolute;
+        font-weight: 800;
+        color: #f2f4ff;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+        font-size: clamp(1rem, 4.2vw, 1.45rem);
+      }
+      .num.big {
+        color: var(--mint);
+        font-size: clamp(1.15rem, 5.1vw, 1.75rem);
+      }
+
+      .controls {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.65rem;
+        padding: 0.9rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      button {
+        border: 1px solid rgba(255, 255, 255, 0.27);
+        color: #fff;
+        border-radius: 12px;
+        padding: 0.8rem 0.75rem;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        cursor: pointer;
+      }
+      .yes { background: rgba(62, 157, 255, 0.86); }
+      .no { background: rgba(255, 255, 255, 0.12); }
+
+      .footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.8rem;
+      }
+      .toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+      .toggle input { accent-color: var(--violet); }
+      .link {
+        color: #bcd7ff;
+        text-decoration: none;
+        font-weight: 700;
+      }
+      .link:hover { text-decoration: underline; }
+
+      .reveal {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        text-align: center;
+        padding: 1rem;
+        background:
+          radial-gradient(circle at 50% 20%, rgba(144, 231, 255, 0.25), transparent 45%),
+          linear-gradient(180deg, rgba(11, 8, 24, 0.93), rgba(8, 7, 14, 0.97));
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 420ms ease;
+      }
+      .reveal.show { opacity: 1; pointer-events: auto; }
+      .reveal h2 {
+        margin: 0;
+        font-size: clamp(1.4rem, 4.6vw, 2.1rem);
+      }
+      .date {
+        margin-top: 0.55rem;
+        font-size: clamp(1.7rem, 6vw, 2.6rem);
+        font-weight: 900;
+        color: var(--gold);
+        text-shadow: 0 0 16px rgba(247, 204, 99, 0.35);
+      }
+      .cake {
+        font-size: clamp(2.1rem, 7vw, 3rem);
+        margin: 0.4rem 0;
+      }
+      .reveal button {
+        margin-top: 0.9rem;
+        background: rgba(62, 157, 255, 0.86);
+      }
+
+      canvas#fx {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="app">
+      <header class="topbar">
+        <div>
+          <h1>Binary Birthday Oracle Cards</h1>
+          <p id="subtitle" class="sub">Think of your birth day number (1–31).</p>
+        </div>
+        <div id="phasePill" class="pill">Day Reading 1/5</div>
+      </header>
+
+      <section class="oracle">
+        <canvas id="fx"></canvas>
+        <div class="oracle-head">
+          <h2 id="prompt" class="oracle-title">Is your birthday number on this oracle card?</h2>
+          <div class="progress"><span id="bar"></span></div>
+        </div>
+
+        <div class="card-stage">
+          <div id="oracleCard" class="oracle-card">
+            <div id="bitTag" class="card-tag">Key 1</div>
+            <div id="nums" class="nums"></div>
+          </div>
+        </div>
+
+        <div class="controls">
+          <button id="yesBtn" class="yes">YES - It's Here</button>
+          <button id="noBtn" class="no">NO</button>
+        </div>
+
+        <div id="reveal" class="reveal">
+          <div>
+            <h2 id="revealLead">The spirits say...</h2>
+            <div class="cake">🎂</div>
+            <div id="dateOut" class="date"></div>
+            <button id="againBtn">Read Again</button>
+          </div>
+        </div>
+      </section>
+
+      <footer class="footer">
+        <label class="toggle">
+          <input id="monthToggle" type="checkbox" checked />
+          Also decode month
+        </label>
+        <a class="link" href="../">Back to Project Hub</a>
+      </footer>
+    </main>
+
+    <script>
+      const dayBits = [1, 2, 4, 8, 16];
+      const monthBits = [1, 2, 4, 8];
+      const monthNames = [
+        "", "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+      ];
+
+      const subtitle = document.getElementById("subtitle");
+      const phasePill = document.getElementById("phasePill");
+      const prompt = document.getElementById("prompt");
+      const bitTag = document.getElementById("bitTag");
+      const nums = document.getElementById("nums");
+      const bar = document.getElementById("bar");
+      const yesBtn = document.getElementById("yesBtn");
+      const noBtn = document.getElementById("noBtn");
+      const reveal = document.getElementById("reveal");
+      const revealLead = document.getElementById("revealLead");
+      const dateOut = document.getElementById("dateOut");
+      const againBtn = document.getElementById("againBtn");
+      const monthToggle = document.getElementById("monthToggle");
+      const fx = document.getElementById("fx");
+      const ctx = fx.getContext("2d");
+
+      let mode = "day";
+      let step = 0;
+      let dayValue = 0;
+      let monthValue = 0;
+
+      let particles = [];
+      let raf = null;
+
+      function resizeFx() {
+        fx.width = fx.clientWidth * devicePixelRatio;
+        fx.height = fx.clientHeight * devicePixelRatio;
+        ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+      }
+
+      function subsetForBit(max, bit) {
+        const out = [];
+        for (let i = 1; i <= max; i++) {
+          if (i & bit) out.push(i);
+        }
+        return out;
+      }
+
+      function shuffle(arr) {
+        const a = [...arr];
+        for (let i = a.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [a[i], a[j]] = [a[j], a[i]];
+        }
+        return a;
+      }
+
+      function placeNumbers(list) {
+        nums.innerHTML = "";
+        const shuffled = shuffle(list);
+        const cols = 4;
+        const rows = Math.ceil(shuffled.length / cols);
+        const xGap = 100 / cols;
+        const yGap = 100 / rows;
+        shuffled.forEach((n, i) => {
+          const c = i % cols;
+          const r = Math.floor(i / cols);
+          const jitterX = (Math.random() - 0.5) * 9;
+          const jitterY = (Math.random() - 0.5) * 9;
+          const el = document.createElement("div");
+          el.className = "num" + (Math.random() > 0.74 ? " big" : "");
+          el.textContent = String(n);
+          el.style.left = `${c * xGap + xGap * 0.42 + jitterX}%`;
+          el.style.top = `${r * yGap + yGap * 0.45 + jitterY}%`;
+          nums.appendChild(el);
+        });
+      }
+
+      function renderStep() {
+        const bits = mode === "day" ? dayBits : monthBits;
+        const max = mode === "day" ? 31 : 12;
+        const bit = bits[step];
+
+        const total = dayBits.length + (monthToggle.checked ? monthBits.length : 0);
+        const done = mode === "day" ? step : dayBits.length + step;
+        bar.style.width = `${(done / total) * 100}%`;
+
+        phasePill.textContent = `${mode === "day" ? "Day" : "Month"} Reading ${step + 1}/${bits.length}`;
+        prompt.textContent = mode === "day"
+          ? "Is your birth DAY number on this oracle card?"
+          : "Is your birth MONTH number on this oracle card?";
+        subtitle.textContent = mode === "day"
+          ? "Think of your birth day (1–31)."
+          : "Now think of your birth month (1–12).";
+
+        bitTag.textContent = `Key ${bit}`;
+        placeNumbers(subsetForBit(max, bit));
+      }
+
+      function nextStep() {
+        const bits = mode === "day" ? dayBits : monthBits;
+        step += 1;
+
+        if (step < bits.length) {
+          renderStep();
+          return;
+        }
+
+        if (mode === "day" && monthToggle.checked) {
+          mode = "month";
+          step = 0;
+          renderStep();
+          return;
+        }
+
+        showReveal();
+      }
+
+      function answer(isYes) {
+        const bits = mode === "day" ? dayBits : monthBits;
+        const bit = bits[step];
+        if (isYes) {
+          if (mode === "day") dayValue += bit;
+          else monthValue += bit;
+        }
+        nextStep();
+      }
+
+      function showReveal() {
+        bar.style.width = "100%";
+        phasePill.textContent = "Decoded";
+        revealLead.textContent = "The spirits say...";
+
+        let monthName = "";
+        if (monthToggle.checked) {
+          let m = monthValue;
+          if (m < 1 || m > 12) m = 1;
+          monthName = monthNames[m] + " ";
+        } else {
+          monthName = "";
+        }
+
+        let d = dayValue;
+        if (d < 1 || d > 31) d = 1;
+        dateOut.textContent = `${monthName}${d}`.trim();
+
+        reveal.classList.add("show");
+        launchFireworks();
+      }
+
+      function reset() {
+        mode = "day";
+        step = 0;
+        dayValue = 0;
+        monthValue = 0;
+        reveal.classList.remove("show");
+        renderStep();
+      }
+
+      function launchFireworks() {
+        resizeFx();
+        particles = [];
+        const w = fx.clientWidth;
+        const h = fx.clientHeight;
+        for (let burst = 0; burst < 5; burst++) {
+          const cx = 80 + Math.random() * (w - 160);
+          const cy = 80 + Math.random() * (h * 0.5);
+          for (let i = 0; i < 34; i++) {
+            const a = (Math.PI * 2 * i) / 34;
+            const speed = 1.2 + Math.random() * 2.5;
+            particles.push({
+              x: cx, y: cy,
+              vx: Math.cos(a) * speed,
+              vy: Math.sin(a) * speed,
+              life: 55 + Math.random() * 30,
+              hue: 180 + Math.random() * 120,
+              r: 1.6 + Math.random() * 2.2
+            });
+          }
+        }
+
+        if (raf) cancelAnimationFrame(raf);
+        function frame() {
+          ctx.clearRect(0, 0, fx.clientWidth, fx.clientHeight);
+          particles = particles.filter((p) => p.life > 0);
+          particles.forEach((p) => {
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vy += 0.016;
+            p.life -= 1;
+            ctx.fillStyle = `hsla(${p.hue} 100% 70% / ${Math.max(0, p.life / 80)})`;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+            ctx.fill();
+          });
+          if (particles.length) raf = requestAnimationFrame(frame);
+        }
+        raf = requestAnimationFrame(frame);
+      }
+
+      yesBtn.addEventListener("click", () => answer(true));
+      noBtn.addEventListener("click", () => answer(false));
+      againBtn.addEventListener("click", reset);
+      monthToggle.addEventListener("change", reset);
+      window.addEventListener("resize", () => {
+        if (reveal.classList.contains("show")) resizeFx();
+      });
+
+      reset();
+    </script>
+  </body>
+</html>
