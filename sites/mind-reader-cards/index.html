@@ -86,6 +86,8 @@
           radial-gradient(circle at 50% 8%, rgba(255, 255, 255, 0.08), transparent 40%),
           rgba(0, 0, 0, 0.15);
         overflow: hidden;
+        perspective: 1200px;
+        -webkit-perspective: 1200px;
       }
 
       .card-shell {
@@ -95,6 +97,7 @@
         top: 50%;
         left: 50%;
         transform-style: preserve-3d;
+        -webkit-transform-style: preserve-3d;
         transition: transform 460ms cubic-bezier(0.23, 1, 0.32, 1), opacity 360ms ease;
         will-change: transform, opacity;
       }
@@ -103,9 +106,11 @@
         width: 100%;
         height: 100%;
         transform-style: preserve-3d;
+        -webkit-transform-style: preserve-3d;
         transition: transform 430ms ease;
       }
       .card-shell.face-up .card-inner { transform: rotateY(180deg); }
+      .card-shell.flipping .card-inner { transition-duration: 520ms; }
 
       .card-face,
       .card-back {
@@ -113,6 +118,7 @@
         inset: 0;
         border-radius: 12px;
         backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
         overflow: hidden;
       }
       .card-face {
@@ -147,6 +153,10 @@
         place-items: center;
         color: white;
         font-size: 1.5rem;
+      }
+      .card-shell.removed {
+        opacity: 0;
+        filter: blur(1px);
       }
 
       .msg {
@@ -274,11 +284,13 @@
       function spreadPositions(count) {
         const w = stage.clientWidth;
         const center = w / 2;
-        const spacing = Math.min(118, w / (count + 0.8));
+        const spacing = Math.min(72, w / (count + 2.4)); // overlap/fan spacing
         const start = center - ((count - 1) * spacing) / 2;
+        const mid = (count - 1) / 2;
         return Array.from({ length: count }, (_, i) => ({
           x: start + i * spacing,
-          rot: (i - (count - 1) / 2) * 4.5
+          rot: (i - mid) * 9.5,
+          y: Math.abs(i - mid) * 7
         }));
       }
 
@@ -291,7 +303,16 @@
       }
 
       function moveCard(el, pos, extraY = 0) {
-        el.style.transform = `translate(-50%, -50%) translate(${pos.x - stage.clientWidth / 2}px, ${extraY}px) rotate(${pos.rot}deg)`;
+        el.style.transform = `translate(-50%, -50%) translate(${pos.x - stage.clientWidth / 2}px, ${pos.y + extraY}px) rotate(${pos.rot}deg)`;
+      }
+
+      async function flipCard(shell, toFaceUp) {
+        shell.classList.add("flipping");
+        // force style flush for more reliable animation on WebKit
+        shell.offsetHeight;
+        shell.classList.toggle("face-up", toFaceUp);
+        await sleep(530);
+        shell.classList.remove("flipping");
       }
 
       async function runSelectionPhase() {
@@ -316,8 +337,8 @@
 
       async function flipAllToBack() {
         for (let i = 0; i < cardsOnStage.length; i++) {
-          cardsOnStage[i].classList.remove("face-up");
-          await sleep(90);
+          await flipCard(cardsOnStage[i], false);
+          await sleep(40);
         }
       }
 
@@ -356,8 +377,8 @@
         const removeIndex = Math.floor(Math.random() * cardsOnStage.length);
         const removed = cardsOnStage[removeIndex];
         const removedPos = positions[removeIndex];
-        removed.style.opacity = "0";
-        removed.style.transform = `translate(-50%, -50%) translate(${removedPos.x - stage.clientWidth / 2}px, 180px) rotate(${removedPos.rot + 20}deg)`;
+        removed.classList.add("removed");
+        removed.style.transform = `translate(-50%, -50%) translate(${removedPos.x - stage.clientWidth / 2}px, 190px) rotate(${removedPos.rot + 26}deg)`;
         await sleep(430);
         removed.remove();
         cardsOnStage.splice(removeIndex, 1);
@@ -376,8 +397,8 @@
 
         // Flip left -> right one-by-one.
         for (let i = 0; i < cardsOnStage.length; i++) {
-          cardsOnStage[i].classList.add("face-up");
-          await sleep(320);
+          await flipCard(cardsOnStage[i], true);
+          await sleep(80);
         }
 
         resultMsg.classList.remove("hidden");
