@@ -27,9 +27,9 @@
           linear-gradient(180deg, var(--bg-a), var(--bg-b));
       }
       .wrap {
-        width: min(940px, 94vw);
+        width: min(1000px, 95vw);
         margin: 0 auto;
-        padding: 1.2rem 0 2rem;
+        padding: 1rem 0 2rem;
       }
       .panel {
         border: 1px solid var(--line);
@@ -39,17 +39,16 @@
         backdrop-filter: blur(6px);
         box-shadow: 0 14px 28px rgba(0, 0, 0, 0.25);
       }
-      h1 { margin: 0; font-size: clamp(1.45rem, 3vw, 2rem); }
+      h1 { margin: 0; font-size: clamp(1.4rem, 3vw, 2rem); }
       .sub { margin: 0.45rem 0 0; color: var(--muted); }
       .top {
         display: flex;
         justify-content: space-between;
         gap: 0.8rem;
         align-items: end;
-        margin-bottom: 0.9rem;
       }
       .timer {
-        min-width: 90px;
+        min-width: 92px;
         text-align: right;
       }
       .timer .n {
@@ -74,40 +73,72 @@
         background: linear-gradient(90deg, #f7de8f, #f3b93f);
         transition: width 180ms linear;
       }
-      .grid {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(94px, 1fr));
-        gap: 12px;
-      }
-      .card {
-        aspect-ratio: 2.5 / 3.5;
-        border-radius: 12px;
-        background: #fff;
-        border: 1px solid rgba(0, 0, 0, 0.14);
-        color: #0f1118;
+      .hidden { display: none !important; }
+
+      .stage {
         position: relative;
+        margin-top: 1rem;
+        height: min(54vw, 360px);
+        min-height: 250px;
+        border-radius: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background:
+          radial-gradient(circle at 50% 8%, rgba(255, 255, 255, 0.08), transparent 40%),
+          rgba(0, 0, 0, 0.15);
         overflow: hidden;
-        transform-style: preserve-3d;
-        transition: transform 300ms ease, opacity 300ms ease;
       }
-      .card.red { color: #cc1f35; }
-      .rank {
+
+      .card-shell {
         position: absolute;
-        top: 8px;
-        left: 8px;
-        font-size: 1.05rem;
-        font-weight: 800;
-        line-height: 1.05;
+        width: min(14.6vw, 120px);
+        aspect-ratio: 2.5 / 3.5;
+        top: 50%;
+        left: 50%;
+        transform-style: preserve-3d;
+        transition: transform 460ms cubic-bezier(0.23, 1, 0.32, 1), opacity 360ms ease;
+        will-change: transform, opacity;
       }
-      .suit-big {
+      .card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        transform-style: preserve-3d;
+        transition: transform 430ms ease;
+      }
+      .card-shell.face-up .card-inner { transform: rotateY(180deg); }
+
+      .card-face,
+      .card-back {
+        position: absolute;
+        inset: 0;
+        border-radius: 12px;
+        backface-visibility: hidden;
+        overflow: hidden;
+      }
+      .card-face {
+        background: #fff;
+        color: #11131a;
+        border: 1px solid rgba(0, 0, 0, 0.14);
+        transform: rotateY(180deg);
+      }
+      .card-face.red { color: #cc1f35; }
+      .corner {
+        position: absolute;
+        font-size: clamp(0.92rem, 2vw, 1.12rem);
+        font-weight: 800;
+        line-height: 1;
+      }
+      .corner.tl { top: 7px; left: 7px; }
+      .corner.br { bottom: 7px; right: 7px; transform: rotate(180deg); }
+      .pip {
         position: absolute;
         inset: 0;
         display: grid;
         place-items: center;
-        font-size: 2rem;
-        font-weight: 700;
+        font-size: clamp(2.1rem, 5.2vw, 3.05rem); /* larger pips */
+        font-weight: 800;
       }
-      .back {
+      .card-back {
         background:
           linear-gradient(135deg, #1f56c5, #7b35ba),
           repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.22) 0 6px, rgba(255, 255, 255, 0.1) 6px 12px);
@@ -115,29 +146,14 @@
         display: grid;
         place-items: center;
         color: white;
-        font-size: 1.6rem;
+        font-size: 1.5rem;
       }
-      .hidden { display: none !important; }
-      .shuffle-stack {
-        height: 260px;
-        display: grid;
-        place-items: center;
-        position: relative;
-      }
-      .stack-card {
-        width: min(32vw, 140px);
-        aspect-ratio: 2.5 / 3.5;
-        border-radius: 12px;
-        position: absolute;
-        transform-origin: center;
-        transition: transform 350ms ease, opacity 350ms ease;
-      }
-      .shake {
-        animation: shake 0.18s infinite alternate;
-      }
-      @keyframes shake {
-        from { transform: translateX(-3px) rotate(-4deg); }
-        to { transform: translateX(3px) rotate(4deg); }
+
+      .msg {
+        margin-top: 0.75rem;
+        text-align: center;
+        color: var(--good);
+        font-weight: 700;
       }
       .cta-row {
         display: flex;
@@ -155,15 +171,7 @@
         text-decoration: none;
         cursor: pointer;
       }
-      button.secondary, a.btn.secondary {
-        background: rgba(255, 255, 255, 0.1);
-      }
-      .msg {
-        text-align: center;
-        margin: 0.85rem 0 0.35rem;
-        color: var(--good);
-        font-weight: 700;
-      }
+      a.btn.secondary { background: rgba(255, 255, 255, 0.1); }
     </style>
   </head>
   <body>
@@ -180,11 +188,7 @@
           </div>
         </div>
 
-        <div id="selectionGrid" class="grid"></div>
-
-        <div id="shuffleView" class="shuffle-stack hidden"></div>
-
-        <div id="revealGrid" class="grid hidden"></div>
+        <div id="stage" class="stage"></div>
         <div id="resultMsg" class="msg hidden">I read your mind. Your card is gone.</div>
 
         <div class="cta-row">
@@ -204,7 +208,7 @@
         { rank: "4", suit: "♠" }
       ];
 
-      // None exactly matches the opening set.
+      // None exactly match opening cards.
       const revealCards = [
         { rank: "K", suit: "♦" },
         { rank: "7", suit: "♣" },
@@ -217,128 +221,186 @@
       const timerWrap = document.getElementById("timerWrap");
       const timerNum = document.getElementById("timerNum");
       const timerBar = document.getElementById("timerBar");
-      const selectionGrid = document.getElementById("selectionGrid");
-      const shuffleView = document.getElementById("shuffleView");
-      const revealGrid = document.getElementById("revealGrid");
+      const stage = document.getElementById("stage");
       const resultMsg = document.getElementById("resultMsg");
       const againBtn = document.getElementById("againBtn");
 
       let intervalId = null;
+      let cardsOnStage = [];
+
+      function sleep(ms) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+      }
 
       function isRed(suit) {
         return suit === "♥" || suit === "♦";
       }
 
-      function makeFaceCard(card) {
-        const el = document.createElement("div");
-        el.className = `card ${isRed(card.suit) ? "red" : ""}`;
-        el.innerHTML = `
-          <div class="rank">${card.rank}<br>${card.suit}</div>
-          <div class="suit-big">${card.suit}</div>
+      function createCardElement(card, faceUp = true) {
+        const shell = document.createElement("div");
+        shell.className = "card-shell" + (faceUp ? " face-up" : "");
+
+        const inner = document.createElement("div");
+        inner.className = "card-inner";
+
+        const face = document.createElement("div");
+        face.className = "card-face" + (isRed(card.suit) ? " red" : "");
+        face.innerHTML = `
+          <div class="corner tl">${card.rank}<br>${card.suit}</div>
+          <div class="pip">${card.suit}</div>
+          <div class="corner br">${card.rank}<br>${card.suit}</div>
         `;
-        return el;
+
+        const back = document.createElement("div");
+        back.className = "card-back";
+        back.textContent = "✦";
+
+        inner.appendChild(face);
+        inner.appendChild(back);
+        shell.appendChild(inner);
+        return shell;
       }
 
-      function makeBackCard() {
-        const el = document.createElement("div");
-        el.className = "card back";
-        el.textContent = "✦";
-        return el;
+      function setCardFace(shell, card) {
+        const face = shell.querySelector(".card-face");
+        face.className = "card-face" + (isRed(card.suit) ? " red" : "");
+        face.innerHTML = `
+          <div class="corner tl">${card.rank}<br>${card.suit}</div>
+          <div class="pip">${card.suit}</div>
+          <div class="corner br">${card.rank}<br>${card.suit}</div>
+        `;
       }
 
-      function resetUI() {
-        clearInterval(intervalId);
+      function spreadPositions(count) {
+        const w = stage.clientWidth;
+        const center = w / 2;
+        const spacing = Math.min(118, w / (count + 0.8));
+        const start = center - ((count - 1) * spacing) / 2;
+        return Array.from({ length: count }, (_, i) => ({
+          x: start + i * spacing,
+          rot: (i - (count - 1) / 2) * 4.5
+        }));
+      }
+
+      function placeCards(cards, faceUp) {
+        stage.innerHTML = "";
+        cardsOnStage = cards.map((card) => createCardElement(card, faceUp));
+        cardsOnStage.forEach((el) => stage.appendChild(el));
+        const positions = spreadPositions(cardsOnStage.length);
+        cardsOnStage.forEach((el, i) => moveCard(el, positions[i], 0));
+      }
+
+      function moveCard(el, pos, extraY = 0) {
+        el.style.transform = `translate(-50%, -50%) translate(${pos.x - stage.clientWidth / 2}px, ${extraY}px) rotate(${pos.rot}deg)`;
+      }
+
+      async function runSelectionPhase() {
         subtitle.textContent = "Think of one card. Keep it in your mind.";
         timerWrap.classList.remove("hidden");
-        timerNum.textContent = "5";
-        timerBar.style.width = "100%";
-
-        selectionGrid.classList.remove("hidden");
-        selectionGrid.innerHTML = "";
-        openingCards.forEach((c) => selectionGrid.appendChild(makeFaceCard(c)));
-
-        shuffleView.classList.add("hidden");
-        shuffleView.innerHTML = "";
-
-        revealGrid.classList.add("hidden");
-        revealGrid.innerHTML = "";
-
         resultMsg.classList.add("hidden");
         againBtn.classList.add("hidden");
-      }
+        timerNum.textContent = "5";
+        timerBar.style.width = "100%";
+        placeCards(openingCards, true);
 
-      function runSelectionPhase() {
         let t = 5;
         intervalId = setInterval(() => {
           t -= 1;
           timerNum.textContent = String(Math.max(0, t));
           timerBar.style.width = `${(Math.max(0, t) / 5) * 100}%`;
-          if (t <= 0) {
-            clearInterval(intervalId);
-            runShufflePhase();
-          }
         }, 1000);
+
+        await sleep(5000);
+        clearInterval(intervalId);
       }
 
-      function runShufflePhase() {
+      async function flipAllToBack() {
+        for (let i = 0; i < cardsOnStage.length; i++) {
+          cardsOnStage[i].classList.remove("face-up");
+          await sleep(90);
+        }
+      }
+
+      function shuffledIndices(n) {
+        const arr = [...Array(n).keys()];
+        for (let i = arr.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+      }
+
+      async function runShufflePhase() {
         subtitle.textContent = "I will remove the card you're thinking of...";
         timerWrap.classList.add("hidden");
-        selectionGrid.classList.add("hidden");
-        shuffleView.classList.remove("hidden");
 
-        const stack = [];
-        for (let i = 0; i < 6; i++) {
-          const card = makeBackCard();
-          card.classList.add("stack-card", "shake");
-          card.style.transform = `translate(${(i - 2) * 10}px, ${(i % 2) * 6}px) rotate(${(i - 2) * 6}deg)`;
-          shuffleView.appendChild(card);
-          stack.push(card);
+        await flipAllToBack();
+        await sleep(160);
+
+        // Random shuffle bursts.
+        for (let cycle = 0; cycle < 9; cycle++) {
+          const order = shuffledIndices(cardsOnStage.length);
+          const positions = spreadPositions(cardsOnStage.length);
+          cardsOnStage.forEach((el, i) => {
+            moveCard(el, positions[order[i]], (Math.random() - 0.5) * 16);
+          });
+          await sleep(140);
         }
 
-        setTimeout(() => {
-          // Remove one card from the stack.
-          const removeTarget = stack[2];
-          removeTarget.style.opacity = "0";
-          removeTarget.style.transform += " scale(0.01)";
-        }, 1200);
+        // Settle neatly in spread row.
+        let positions = spreadPositions(cardsOnStage.length);
+        cardsOnStage.forEach((el, i) => moveCard(el, positions[i], 0));
+        await sleep(380);
 
-        setTimeout(() => {
-          stack.forEach((c) => c.classList.remove("shake"));
-          runRevealPhase();
-        }, 2300);
+        // Remove one card by sliding it out.
+        const removeIndex = Math.floor(Math.random() * cardsOnStage.length);
+        const removed = cardsOnStage[removeIndex];
+        const removedPos = positions[removeIndex];
+        removed.style.opacity = "0";
+        removed.style.transform = `translate(-50%, -50%) translate(${removedPos.x - stage.clientWidth / 2}px, 180px) rotate(${removedPos.rot + 20}deg)`;
+        await sleep(430);
+        removed.remove();
+        cardsOnStage.splice(removeIndex, 1);
+
+        // Condense remaining five cards into final spread.
+        positions = spreadPositions(cardsOnStage.length);
+        cardsOnStage.forEach((el, i) => moveCard(el, positions[i], 0));
+        await sleep(420);
       }
 
-      function runRevealPhase() {
+      async function runRevealPhase() {
         subtitle.textContent = "I read your mind.";
-        shuffleView.classList.add("hidden");
-        revealGrid.classList.remove("hidden");
-        revealGrid.innerHTML = "";
 
-        const slots = revealCards.map(() => {
-          const shell = document.createElement("div");
-          shell.className = "card";
-          revealGrid.appendChild(shell);
-          return shell;
-        });
+        // Replace face content while cards are face-down.
+        cardsOnStage.forEach((el, i) => setCardFace(el, revealCards[i]));
 
-        let i = 0;
-        const flip = setInterval(() => {
-          slots[i].replaceWith(makeFaceCard(revealCards[i]));
-          i += 1;
-          if (i >= revealCards.length) {
-            clearInterval(flip);
-            resultMsg.classList.remove("hidden");
-            againBtn.classList.remove("hidden");
-          }
-        }, 320);
+        // Flip left -> right one-by-one.
+        for (let i = 0; i < cardsOnStage.length; i++) {
+          cardsOnStage[i].classList.add("face-up");
+          await sleep(320);
+        }
+
+        resultMsg.classList.remove("hidden");
+        againBtn.classList.remove("hidden");
       }
 
-      function startTrick() {
-        resetUI();
-        runSelectionPhase();
+      async function startTrick() {
+        clearInterval(intervalId);
+        await runSelectionPhase();
+        await runShufflePhase();
+        await runRevealPhase();
       }
 
-      againBtn.addEventListener("click", startTrick);
+      againBtn.addEventListener("click", () => {
+        startTrick();
+      });
+
+      window.addEventListener("resize", () => {
+        if (!cardsOnStage.length) return;
+        const pos = spreadPositions(cardsOnStage.length);
+        cardsOnStage.forEach((el, i) => moveCard(el, pos[i], 0));
+      });
+
       startTrick();
     </script>
   </body>
