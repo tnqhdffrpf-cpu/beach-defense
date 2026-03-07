@@ -53,5 +53,10 @@
     "name": "Binary Birthday Oracle Cards",
     "path": "./sites/binary-birthday-oracle/",
     "description": "Mind-reading yes/no oracle cards decode day (and optional month) using classic binary magic."
+  },
+  {
+    "name": "Oval Office Walkthrough (Three.js)",
+    "path": "./sites/threejs-video-game/",
+    "description": "First-person human-scale Three.js walkthrough of an Oval Office-inspired interior with detailed geometry."
   }
 ]
