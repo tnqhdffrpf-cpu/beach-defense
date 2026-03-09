@@ -1,10 +1,5 @@
 [
   {
-    "name": "VR Numerology Bot",
-    "path": "./sites/numerology-bot/",
-    "description": "iPhone-friendly camera app that reads numbers and returns humorous numerology readings."
-  },
-  {
     "name": "VR Water Gun",
     "path": "./sites/vr-water-gun/",
     "description": "Quest-friendly WebXR cowboy target shooter with 60-second rounds, accuracy scoring, and high score."
@@ -15,9 +10,9 @@
     "description": "Story-based escape puzzle with interactive clues, safe keypad, and timed ending."
   },
   {
-    "name": "Beach Defense",
+    "name": "Sandcastle Contest",
     "path": "./sites/beach-defense/",
-    "description": "Arcade-style coastal defense game."
+    "description": "Cannon Beach sandcastle builder with spectators, weather, and ambient coastal scene."
   },
   {
     "name": "Harrisburg Track Hub",
