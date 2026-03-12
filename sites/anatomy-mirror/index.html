@@ -254,7 +254,7 @@
             On first load, the app compiles a Bicycle card-back target from the bundled reference image. After that, the tracker locks to that image target instead of guessing from hand pose or a loose rectangle.
           </p>
           <p>
-            Best results come from the rear camera, a single blue Bicycle-style card back, and steady lighting with the full card visible.
+            Best results come from the front camera, a single blue Bicycle-style card back, and steady lighting with the full card visible.
           </p>
           <div style="display:flex; gap:12px; margin-top:18px; flex-wrap:wrap;">
             <button id="startBtn" type="button">Start Camera</button>
@@ -301,10 +301,11 @@
 
       const TARGET_CACHE_DB = "card-xray-cache";
       const TARGET_CACHE_STORE = "targets";
-      const TARGET_CACHE_KEY = "bicycle-back-v3";
+      const TARGET_CACHE_KEY = "bicycle-back-v4-front";
       const TARGET_IMAGE_PATH = "./assets/bicyclebackside.jpg";
-      const TARGET_IMAGE_WIDTH = 661;
-      const TARGET_IMAGE_HEIGHT = 1038;
+      const TARGET_CARD_ASPECT = 1.4;
+      const TARGET_IMAGE_WIDTH = 1000;
+      const TARGET_IMAGE_HEIGHT = Math.round(TARGET_IMAGE_WIDTH * TARGET_CARD_ASPECT);
 
       let appStarted = false;
       let startInFlight = false;
@@ -316,6 +317,7 @@
       let sceneEl = null;
       let revealPlaneEl = null;
       let renderTimer = 0;
+      let restoreGetUserMedia = null;
 
       function setStatus(line, detail) {
         statusLine.textContent = line;
@@ -343,6 +345,46 @@
           image.onerror = () => reject(new Error("reference-image-failed"));
           image.src = TARGET_IMAGE_PATH;
         });
+      }
+
+      async function buildPreparedTargetSource() {
+        const image = await loadReferenceImage();
+        const canvas = document.createElement("canvas");
+        canvas.width = TARGET_IMAGE_WIDTH;
+        canvas.height = TARGET_IMAGE_HEIGHT;
+        const ctx = canvas.getContext("2d", { willReadFrequently: true });
+
+        const sourceAspect = image.naturalHeight / image.naturalWidth;
+        const desiredAspect = TARGET_CARD_ASPECT;
+        let sx = 0;
+        let sy = 0;
+        let sw = image.naturalWidth;
+        let sh = image.naturalHeight;
+
+        if (sourceAspect > desiredAspect) {
+          sh = Math.round(sw * desiredAspect);
+          sy = Math.max(0, Math.round((image.naturalHeight - sh) * 0.5));
+        } else if (sourceAspect < desiredAspect) {
+          sw = Math.round(sh / desiredAspect);
+          sx = Math.max(0, Math.round((image.naturalWidth - sw) * 0.5));
+        }
+
+        ctx.drawImage(image, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+
+        const frameInset = Math.round(canvas.width * 0.035);
+        ctx.strokeStyle = "rgba(255,255,255,0.92)";
+        ctx.lineWidth = Math.max(4, Math.round(canvas.width * 0.01));
+        ctx.strokeRect(frameInset, frameInset, canvas.width - frameInset * 2, canvas.height - frameInset * 2);
+
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        for (let i = 0; i < data.length; i += 4) {
+          data[i] = Math.min(255, data[i] * 1.08);
+          data[i + 1] = Math.min(255, data[i + 1] * 1.08);
+          data[i + 2] = Math.min(255, data[i + 2] * 1.15);
+        }
+        ctx.putImageData(imageData, 0, 0);
+        return canvas;
       }
 
       function openTargetDb() {
@@ -397,7 +439,7 @@
               return cached;
             }
             setStatus("Compiling card target...", "First run only. Building a MindAR image target from the Bicycle back reference.");
-            const image = await loadReferenceImage();
+            const image = await buildPreparedTargetSource();
             const compiler = new window.MINDAR.IMAGE.Compiler();
             await compiler.compileImageTargets([image], (progress) => {
               const percent = Math.max(1, Math.min(100, Math.round(progress)));
@@ -484,6 +526,10 @@
         if (sceneEl) {
           sceneEl.parentNode && sceneEl.parentNode.removeChild(sceneEl);
         }
+        if (restoreGetUserMedia) {
+          restoreGetUserMedia();
+          restoreGetUserMedia = null;
+        }
         sceneEl = null;
         revealPlaneEl = null;
         appStarted = false;
@@ -491,15 +537,36 @@
         confidenceValue.textContent = "0%";
       }
 
+      function forceFrontCamera() {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          return;
+        }
+        const original = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+        navigator.mediaDevices.getUserMedia = (constraints) => {
+          const nextConstraints = constraints || {};
+          const videoConstraints = typeof nextConstraints.video === "object" ? nextConstraints.video : {};
+          return original({
+            audio: false,
+            video: Object.assign({}, videoConstraints, {
+              facingMode: "user"
+            })
+          });
+        };
+        restoreGetUserMedia = () => {
+          navigator.mediaDevices.getUserMedia = original;
+        };
+      }
+
       function createScene(imageTargetSrc) {
         const aspect = TARGET_IMAGE_HEIGHT / TARGET_IMAGE_WIDTH;
         const revealDataUrl = buildRevealDataUrl();
         sceneHost.innerHTML = "";
+        forceFrontCamera();
 
         const scene = document.createElement("a-scene");
         scene.setAttribute(
           "mindar-image",
-          "imageTargetSrc: " + imageTargetSrc + "; maxTrack: 1; uiLoading: no; uiScanning: no; uiError: no; filterBeta: 500;"
+          "imageTargetSrc: " + imageTargetSrc + "; maxTrack: 1; uiLoading: no; uiScanning: no; uiError: no; filterBeta: 300; missTolerance: 8; warmupTolerance: 1;"
         );
         scene.setAttribute("embedded", "");
         scene.setAttribute("color-space", "sRGB");
@@ -549,13 +616,17 @@
         });
 
         scene.addEventListener("arReady", () => {
+          if (restoreGetUserMedia) {
+            restoreGetUserMedia();
+            restoreGetUserMedia = null;
+          }
           appStarted = true;
           overlay.classList.add("hidden");
           xrayBtn.disabled = false;
           resetBtn.disabled = false;
           trackingValue.textContent = "Searching";
           confidenceValue.textContent = "0%";
-          setStatus("Camera live.", "Show the full blue Bicycle back to the rear camera. MindAR will lock when the image target is recognized.");
+          setStatus("Camera live.", "Show the full blue Bicycle back to the front camera. MindAR will lock when the image target is recognized.");
           stopRenderLoop();
           renderFrame();
         });
@@ -582,7 +653,7 @@
           }
           setStatus("Preparing MindAR target...", "Loading the cached Bicycle target or compiling it if this is the first run.");
           const imageTargetSrc = await ensureTargetUrl();
-          setStatus("Starting scene...", "Building the camera scene for the rear camera.");
+          setStatus("Starting scene...", "Building the camera scene for the front camera.");
           destroyScene();
           createScene(imageTargetSrc);
         } catch (error) {
@@ -654,7 +725,7 @@
         .then(() => {
           startBtn.disabled = false;
           retryBtn.disabled = false;
-          setStatus("Ready to start.", "Use the rear camera and show the full blue Bicycle back. MindAR will track that image target, then X-Ray will fade in the four of hearts.");
+          setStatus("Ready to start.", "Use the front camera and show the full blue Bicycle back. MindAR will track that image target, then X-Ray will fade in the four of hearts.");
         })
         .catch((error) => {
           console.error(error);
