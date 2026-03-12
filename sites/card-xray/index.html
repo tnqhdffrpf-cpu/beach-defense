@@ -1,0 +1,677 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no"
+    />
+    <title>Card X-Ray</title>
+    <style>
+      :root {
+        --panel: rgba(7, 12, 22, 0.76);
+        --panel-strong: rgba(7, 12, 22, 0.92);
+        --border: rgba(151, 214, 255, 0.3);
+        --text: #f2f8ff;
+        --muted: rgba(220, 234, 250, 0.74);
+        --accent: #8fe9ff;
+        --accent-2: #ff8aa0;
+        --button: linear-gradient(180deg, #c2f1ff 0%, #68a9e8 100%);
+      }
+
+      * {
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      html,
+      body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: linear-gradient(180deg, #07101d 0%, #02050b 100%);
+        color: var(--text);
+        font-family: "Avenir Next", "Segoe UI", sans-serif;
+      }
+
+      #app,
+      #video,
+      #scene {
+        position: fixed;
+        inset: 0;
+      }
+
+      #video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transform: scaleX(-1);
+        background: #06101b;
+        filter: contrast(1.02) saturate(0.98);
+      }
+
+      #scene {
+        pointer-events: none;
+      }
+
+      .vignette {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background:
+          radial-gradient(circle at 50% 50%, transparent 35%, rgba(0, 0, 0, 0.22) 78%),
+          linear-gradient(180deg, rgba(4, 10, 18, 0.1), rgba(4, 10, 18, 0.3));
+      }
+
+      #hud,
+      #controls,
+      #overlay,
+      #message {
+        position: fixed;
+        z-index: 10;
+      }
+
+      #hud,
+      #controls,
+      #overlay .card,
+      #message .card {
+        border: 1px solid var(--border);
+        backdrop-filter: blur(16px);
+        box-shadow: 0 24px 70px rgba(0, 0, 0, 0.24);
+      }
+
+      #hud {
+        top: max(14px, env(safe-area-inset-top));
+        left: 14px;
+        min-width: 220px;
+        padding: 12px 14px;
+        border-radius: 18px;
+        background: var(--panel);
+      }
+
+      .hud-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        margin: 4px 0;
+        font-size: 0.9rem;
+      }
+
+      .label {
+        color: var(--muted);
+      }
+
+      .value {
+        color: var(--accent);
+        font-weight: 700;
+      }
+
+      #controls {
+        right: 14px;
+        bottom: max(14px, env(safe-area-inset-bottom));
+        display: flex;
+        gap: 10px;
+        padding: 12px;
+        border-radius: 18px;
+        background: var(--panel);
+      }
+
+      button {
+        border: 1px solid rgba(184, 231, 255, 0.36);
+        border-radius: 999px;
+        padding: 12px 18px;
+        background: var(--button);
+        color: #0a1220;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        cursor: pointer;
+      }
+
+      button.secondary {
+        background: rgba(20, 33, 52, 0.88);
+        color: var(--text);
+      }
+
+      button:disabled {
+        opacity: 0.55;
+        cursor: default;
+      }
+
+      #overlay,
+      #message {
+        inset: 0;
+        display: grid;
+        place-items: center;
+        padding: 16px;
+      }
+
+      #overlay {
+        background:
+          radial-gradient(circle at 50% 16%, rgba(91, 145, 237, 0.22), transparent 28%),
+          rgba(3, 6, 12, 0.72);
+      }
+
+      #overlay.hidden,
+      #message.hidden {
+        display: none;
+      }
+
+      .card {
+        width: min(780px, calc(100vw - 24px));
+        padding: 24px;
+        border-radius: 26px;
+        background:
+          radial-gradient(circle at top, rgba(136, 223, 255, 0.12), transparent 28%),
+          var(--panel-strong);
+      }
+
+      h1 {
+        margin: 0 0 10px;
+        font-size: clamp(2rem, 5.5vw, 4rem);
+        line-height: 0.96;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      p {
+        margin: 8px 0;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      .lede {
+        color: var(--text);
+      }
+
+      .status-box {
+        margin-top: 16px;
+        padding: 14px;
+        border-radius: 18px;
+        border: 1px solid rgba(143, 233, 255, 0.22);
+        background: rgba(5, 11, 20, 0.5);
+      }
+
+      .status-title {
+        margin: 0 0 8px;
+        color: var(--accent);
+        font-size: 0.82rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .status-line {
+        margin: 0;
+        color: var(--text);
+      }
+
+      .status-detail {
+        margin: 6px 0 0;
+        color: var(--muted);
+        font-size: 0.84rem;
+      }
+
+      @media (max-width: 640px) {
+        #controls {
+          left: 50%;
+          right: auto;
+          transform: translateX(-50%);
+          width: min(calc(100vw - 24px), 420px);
+          justify-content: center;
+          flex-wrap: wrap;
+        }
+
+        #hud {
+          max-width: calc(100vw - 28px);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <video id="video" playsinline muted></video>
+      <div class="vignette"></div>
+      <div id="scene"></div>
+
+      <div id="hud">
+        <div class="hud-row"><span class="label">Card Lock</span><span id="trackingValue" class="value">Idle</span></div>
+        <div class="hud-row"><span class="label">Reveal</span><span id="revealValue" class="value">Off</span></div>
+        <div class="hud-row"><span class="label">Confidence</span><span id="confidenceValue" class="value">0%</span></div>
+      </div>
+
+      <div id="controls">
+        <button id="xrayBtn" type="button" disabled>X-Ray</button>
+        <button id="resetBtn" class="secondary" type="button" disabled>Hide</button>
+      </div>
+
+      <div id="overlay">
+        <div class="card">
+          <h1>Card X-Ray</h1>
+          <p class="lede">
+            Hold the back of a playing card in frame. This trick app tracks the held card and fades in a transparent reveal showing a hidden four of hearts through the back.
+          </p>
+          <p>
+            The card pose is estimated from hand tracking, then the reveal is mapped onto the card so it feels locked to it as you move.
+          </p>
+          <p>
+            Best results come from one hand holding a single card in portrait orientation between the thumb and index finger.
+          </p>
+          <div style="display:flex; gap:12px; margin-top:18px; flex-wrap:wrap;">
+            <button id="startBtn" type="button">Start Camera</button>
+            <button id="retryBtn" class="secondary" type="button">Retry</button>
+          </div>
+          <div class="status-box" aria-live="polite">
+            <p class="status-title">Status</p>
+            <p id="statusLine" class="status-line">Ready to start.</p>
+            <p id="statusDetail" class="status-detail">The camera opens first, then the X-Ray button fades in the reveal once the card is tracked.</p>
+          </div>
+        </div>
+      </div>
+
+      <div id="message" class="hidden">
+        <div class="card">
+          <h1 style="font-size: clamp(1.6rem, 5vw, 2.4rem)">Camera Needed</h1>
+          <p id="messageText">Camera access failed.</p>
+          <div style="display:flex; gap:12px; margin-top:18px;">
+            <button id="messageBtn" type="button">Try Again</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import * as THREE from "https://unpkg.com/three@0.180.0/build/three.module.js";
+
+      const video = document.getElementById("video");
+      const sceneHost = document.getElementById("scene");
+      const overlay = document.getElementById("overlay");
+      const overlayCard = overlay.querySelector(".card");
+      const message = document.getElementById("message");
+      const messageText = document.getElementById("messageText");
+      const startBtn = document.getElementById("startBtn");
+      const retryBtn = document.getElementById("retryBtn");
+      const messageBtn = document.getElementById("messageBtn");
+      const xrayBtn = document.getElementById("xrayBtn");
+      const resetBtn = document.getElementById("resetBtn");
+      const trackingValue = document.getElementById("trackingValue");
+      const revealValue = document.getElementById("revealValue");
+      const confidenceValue = document.getElementById("confidenceValue");
+      const statusLine = document.getElementById("statusLine");
+      const statusDetail = document.getElementById("statusDetail");
+
+      let handLandmarker;
+      let stream;
+      let rafId = 0;
+      let lastVideoTime = -1;
+      let appStarted = false;
+      let startInFlight = false;
+      let visionModulePromise = null;
+      let revealTarget = 0;
+      let revealStrength = 0;
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      renderer.setClearColor(0x000000, 0);
+      sceneHost.appendChild(renderer.domElement);
+
+      const scene = new THREE.Scene();
+      const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, -10, 10);
+      camera.position.z = 5;
+      scene.add(camera);
+      scene.add(new THREE.AmbientLight(0xffffff, 1.12));
+
+      const cardGroup = new THREE.Group();
+      cardGroup.visible = false;
+      scene.add(cardGroup);
+
+      const outline = new THREE.LineLoop(
+        new THREE.BufferGeometry().setFromPoints([
+          new THREE.Vector3(-0.5, 0.7, 0.02),
+          new THREE.Vector3(0.5, 0.7, 0.02),
+          new THREE.Vector3(0.5, -0.7, 0.02),
+          new THREE.Vector3(-0.5, -0.7, 0.02)
+        ]),
+        new THREE.LineBasicMaterial({
+          color: 0xdff6ff,
+          transparent: true,
+          opacity: 0.55,
+          depthTest: false
+        })
+      );
+      cardGroup.add(outline);
+
+      const glow = new THREE.Mesh(
+        new THREE.PlaneGeometry(1.02, 1.42),
+        new THREE.MeshBasicMaterial({
+          color: 0x8ae8ff,
+          transparent: true,
+          opacity: 0.08,
+          depthTest: false
+        })
+      );
+      glow.position.z = -0.02;
+      cardGroup.add(glow);
+
+      const revealCanvas = document.createElement("canvas");
+      revealCanvas.width = 700;
+      revealCanvas.height = 980;
+      const revealCtx = revealCanvas.getContext("2d");
+      const revealTexture = new THREE.CanvasTexture(revealCanvas);
+      const revealMaterial = new THREE.MeshBasicMaterial({
+        map: revealTexture,
+        transparent: true,
+        opacity: 0,
+        depthTest: false
+      });
+      const revealPlane = new THREE.Mesh(new THREE.PlaneGeometry(1, 1.4), revealMaterial);
+      revealPlane.position.z = 0.01;
+      cardGroup.add(revealPlane);
+      paintRevealCard();
+
+      function paintRevealCard() {
+        revealCtx.clearRect(0, 0, revealCanvas.width, revealCanvas.height);
+        const bg = revealCtx.createLinearGradient(0, 0, 0, revealCanvas.height);
+        bg.addColorStop(0, "rgba(6, 18, 34, 0.0)");
+        bg.addColorStop(1, "rgba(6, 18, 34, 0.0)");
+        revealCtx.fillStyle = bg;
+        revealCtx.fillRect(0, 0, revealCanvas.width, revealCanvas.height);
+
+        revealCtx.fillStyle = "rgba(183, 231, 255, 0.08)";
+        revealCtx.fillRect(24, 24, revealCanvas.width - 48, revealCanvas.height - 48);
+
+        revealCtx.strokeStyle = "rgba(180, 236, 255, 0.35)";
+        revealCtx.lineWidth = 8;
+        revealCtx.strokeRect(24, 24, revealCanvas.width - 48, revealCanvas.height - 48);
+
+        revealCtx.fillStyle = "rgba(255, 255, 255, 0.84)";
+        revealCtx.font = "bold 90px Georgia, serif";
+        revealCtx.fillText("4", 70, 120);
+        revealCtx.fillText("4", revealCanvas.width - 120, revealCanvas.height - 60);
+
+        drawHeart(revealCtx, 118, 170, 22, "rgba(255, 130, 158, 0.94)");
+        revealCtx.save();
+        revealCtx.translate(revealCanvas.width - 118, revealCanvas.height - 170);
+        revealCtx.rotate(Math.PI);
+        drawHeart(revealCtx, 0, 0, 22, "rgba(255, 130, 158, 0.94)");
+        revealCtx.restore();
+
+        drawHeart(revealCtx, revealCanvas.width * 0.38, revealCanvas.height * 0.37, 58, "rgba(255, 118, 148, 0.94)");
+        drawHeart(revealCtx, revealCanvas.width * 0.62, revealCanvas.height * 0.37, 58, "rgba(255, 118, 148, 0.94)");
+        drawHeart(revealCtx, revealCanvas.width * 0.38, revealCanvas.height * 0.63, 58, "rgba(255, 118, 148, 0.94)");
+        drawHeart(revealCtx, revealCanvas.width * 0.62, revealCanvas.height * 0.63, 58, "rgba(255, 118, 148, 0.94)");
+
+        revealCtx.strokeStyle = "rgba(202, 244, 255, 0.22)";
+        revealCtx.lineWidth = 6;
+        revealCtx.beginPath();
+        revealCtx.moveTo(revealCanvas.width * 0.15, revealCanvas.height * 0.5);
+        revealCtx.lineTo(revealCanvas.width * 0.85, revealCanvas.height * 0.5);
+        revealCtx.stroke();
+
+        revealTexture.needsUpdate = true;
+      }
+
+      function drawHeart(ctx, x, y, size, color) {
+        ctx.save();
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.moveTo(x, y + size * 0.45);
+        ctx.bezierCurveTo(x, y, x - size, y, x - size, y + size * 0.45);
+        ctx.bezierCurveTo(x - size, y + size * 0.85, x, y + size * 1.1, x, y + size * 1.42);
+        ctx.bezierCurveTo(x, y + size * 1.1, x + size, y + size * 0.85, x + size, y + size * 0.45);
+        ctx.bezierCurveTo(x + size, y, x, y, x, y + size * 0.45);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      function setStatus(line, detail = "") {
+        statusLine.textContent = line;
+        statusDetail.textContent = detail;
+      }
+
+      function setMessage(text) {
+        messageText.textContent = text;
+        message.classList.remove("hidden");
+      }
+
+      function hideMessage() {
+        message.classList.add("hidden");
+      }
+
+      async function ensureVisionModule() {
+        if (!visionModulePromise) {
+          setStatus("Loading tracking library...", "Downloading MediaPipe hand tracking.");
+          visionModulePromise = import(
+            "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.32/vision_bundle.mjs"
+          );
+        }
+        return visionModulePromise;
+      }
+
+      async function ensureHandLandmarker() {
+        if (handLandmarker) return;
+        const visionModule = await ensureVisionModule().catch(() => {
+          throw new Error("mediapipe-script-missing");
+        });
+        const { FilesetResolver, HandLandmarker } = visionModule;
+        setStatus("Loading hand tracker...", "Preparing the card tracking model.");
+        const vision = await FilesetResolver.forVisionTasks(
+          "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.32/wasm"
+        );
+        handLandmarker = await HandLandmarker.createFromOptions(vision, {
+          baseOptions: {
+            modelAssetPath:
+              "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task"
+          },
+          runningMode: "VIDEO",
+          numHands: 1,
+          minHandDetectionConfidence: 0.55,
+          minHandPresenceConfidence: 0.55,
+          minTrackingConfidence: 0.55
+        });
+      }
+
+      async function startCamera() {
+        if (startInFlight) return;
+        hideMessage();
+        startInFlight = true;
+        startBtn.disabled = true;
+        retryBtn.disabled = true;
+        try {
+          if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            throw new Error("getusermedia-unavailable");
+          }
+          await ensureHandLandmarker();
+          if (stream) {
+            stream.getTracks().forEach((track) => track.stop());
+          }
+          setStatus("Requesting camera permission...", "Safari should prompt for the front camera.");
+          stream = await navigator.mediaDevices.getUserMedia({
+            audio: false,
+            video: {
+              facingMode: "user",
+              width: { ideal: 1280 },
+              height: { ideal: 720 }
+            }
+          });
+          video.srcObject = stream;
+          await video.play();
+          appStarted = true;
+          overlay.classList.add("hidden");
+          xrayBtn.disabled = false;
+          resetBtn.disabled = false;
+          setStatus("Camera live.", "Hold a card between your thumb and index finger, then tap X-Ray.");
+          renderFrame();
+        } catch (error) {
+          let detail = "The camera or tracking model could not start.";
+          if (error && error.name === "NotAllowedError") detail = "Camera permission was denied. Allow camera access in Safari settings and try again.";
+          else if (error && error.name === "NotReadableError") detail = "The camera appears busy or unavailable. Close other camera apps or tabs and try again.";
+          else if (error && error.message === "mediapipe-script-missing") detail = "The MediaPipe library could not finish loading. Check your connection and retry.";
+          else if (error && error.message === "getusermedia-unavailable") detail = "This browser is not exposing camera APIs to the page. Please retry in Safari on iPhone.";
+          setStatus("Startup failed.", detail);
+          setMessage(detail);
+          console.error(error);
+        } finally {
+          startInFlight = false;
+          startBtn.disabled = false;
+          retryBtn.disabled = false;
+        }
+      }
+
+      function toScenePoint(landmark) {
+        return new THREE.Vector3((0.5 - landmark.x) * camera.right * 2, (0.5 - landmark.y) * 2, 0);
+      }
+
+      function estimateCardPose(hand) {
+        if (!hand) return null;
+        const thumbTip = toScenePoint(hand[4]);
+        const thumbIp = toScenePoint(hand[3]);
+        const indexTip = toScenePoint(hand[8]);
+        const indexDip = toScenePoint(hand[7]);
+        const wrist = toScenePoint(hand[0]);
+        const indexMcp = toScenePoint(hand[5]);
+        const pinkyMcp = toScenePoint(hand[17]);
+
+        const gripMid = thumbTip.clone().add(indexTip).multiplyScalar(0.5);
+        const palmCenter = wrist.clone().add(indexMcp).add(pinkyMcp).multiplyScalar(1 / 3);
+        const gripWidth = Math.max(0.08, thumbTip.distanceTo(indexTip) + thumbIp.distanceTo(indexDip) * 0.2);
+        const shortAxis = indexTip.clone().sub(thumbTip);
+        const shortAngle = Math.atan2(shortAxis.y, shortAxis.x);
+        const outward = gripMid.clone().sub(palmCenter);
+        if (outward.lengthSq() < 0.0001) return null;
+        outward.normalize();
+
+        const cardWidth = THREE.MathUtils.clamp(gripWidth * 1.45, 0.18, 0.42);
+        const cardHeight = cardWidth * 1.4;
+        const center = gripMid.clone().add(outward.multiplyScalar(cardHeight * 0.42));
+        const angle = shortAngle - Math.PI / 2;
+
+        return {
+          center,
+          angle,
+          width: cardWidth,
+          height: cardHeight,
+          confidence: THREE.MathUtils.clamp(gripWidth / 0.18, 0, 1)
+        };
+      }
+
+      function updateCardOverlay(cardPose) {
+        if (!cardPose) {
+          cardGroup.visible = false;
+          trackingValue.textContent = "Searching";
+          confidenceValue.textContent = "0%";
+          return;
+        }
+
+        cardGroup.visible = true;
+        cardGroup.position.copy(cardPose.center);
+        cardGroup.rotation.z = cardPose.angle;
+        revealPlane.scale.set(cardPose.width, cardPose.height, 1);
+        glow.scale.set(cardPose.width * 1.02, cardPose.height * 1.02, 1);
+
+        const outlinePositions = outline.geometry.attributes.position.array;
+        const halfW = cardPose.width * 0.5;
+        const halfH = cardPose.height * 0.5;
+        const corners = [
+          [-halfW, halfH],
+          [halfW, halfH],
+          [halfW, -halfH],
+          [-halfW, -halfH]
+        ];
+        corners.forEach(([x, y], index) => {
+          const offset = index * 3;
+          outlinePositions[offset] = x;
+          outlinePositions[offset + 1] = y;
+          outlinePositions[offset + 2] = 0.02;
+        });
+        outline.geometry.attributes.position.needsUpdate = true;
+
+        trackingValue.textContent = "Locked";
+        confidenceValue.textContent = `${Math.round(cardPose.confidence * 100)}%`;
+      }
+
+      function renderFrame() {
+        if (!appStarted) return;
+
+        if (video.readyState >= 2 && handLandmarker && video.currentTime !== lastVideoTime) {
+          lastVideoTime = video.currentTime;
+          const result = handLandmarker.detectForVideo(video, performance.now());
+          const hand = result.landmarks?.[0];
+          const cardPose = estimateCardPose(hand);
+          updateCardOverlay(cardPose);
+          if (cardPose) {
+            setStatus("Card tracked.", "Tap X-Ray to fade in the hidden four of hearts.");
+          } else {
+            setStatus("Looking for card grip...", "Hold one playing card between your thumb and index finger.");
+          }
+        }
+
+        revealStrength += (revealTarget - revealStrength) * 0.1;
+        revealMaterial.opacity = revealStrength * 0.62;
+        revealValue.textContent = revealStrength > 0.05 ? "On" : "Off";
+        renderer.render(scene, camera);
+        rafId = requestAnimationFrame(renderFrame);
+      }
+
+      function updateViewport() {
+        const aspect = window.innerWidth / Math.max(window.innerHeight, 1);
+        camera.left = -aspect;
+        camera.right = aspect;
+        camera.top = 1;
+        camera.bottom = -1;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      }
+
+      function stopCamera() {
+        cancelAnimationFrame(rafId);
+        rafId = 0;
+        if (stream) {
+          stream.getTracks().forEach((track) => track.stop());
+          stream = null;
+        }
+        appStarted = false;
+        cardGroup.visible = false;
+      }
+
+      startBtn.addEventListener("click", startCamera);
+      retryBtn.addEventListener("click", startCamera);
+      messageBtn.addEventListener("click", startCamera);
+      overlayCard.addEventListener("click", (event) => {
+        if (event.target.closest("button")) return;
+        if (!appStarted && !startInFlight) startCamera();
+      });
+      xrayBtn.addEventListener("click", () => {
+        revealTarget = 1;
+        setStatus("X-Ray active.", "The four of hearts is fading onto the back of the tracked card.");
+      });
+      resetBtn.addEventListener("click", () => {
+        revealTarget = 0;
+        setStatus("Reveal hidden.", "Tap X-Ray again to fade the card secret back in.");
+      });
+      window.addEventListener("resize", updateViewport);
+      window.addEventListener("orientationchange", () => setTimeout(updateViewport, 180));
+      window.addEventListener("pagehide", stopCamera);
+      window.addEventListener("error", (event) => {
+        const text = event?.message || "Unexpected page error.";
+        setStatus("Runtime error.", text);
+        setMessage(text);
+      });
+
+      updateViewport();
+      setStatus("Warming up tracking...", "The page is preloading MediaPipe so the camera can start more reliably.");
+      xrayBtn.disabled = true;
+      resetBtn.disabled = true;
+      ensureVisionModule()
+        .then(() => {
+          setStatus("Ready to start.", "Open the camera, show a card back, then tap X-Ray.");
+        })
+        .catch(() => {
+          setStatus("Tracking library failed to load.", "Your connection may have interrupted the MediaPipe download. Retry after a refresh.");
+        });
+    </script>
+  </body>
+</html>

@@ -45,6 +45,11 @@
     "description": "Classic math mind-reading trick that decodes month and day from one final number."
   },
   {
+    "name": "Card X-Ray",
+    "path": "./sites/card-xray/",
+    "description": "Camera magic trick that tracks a held playing card and fades a hidden four of hearts through the back."
+  },
+  {
     "name": "Anatomy Mirror",
     "path": "./sites/anatomy-mirror/",
     "description": "iPhone-friendly live camera anatomy overlay using MediaPipe pose tracking and Three.js x-ray rendering."
