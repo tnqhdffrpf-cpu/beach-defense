@@ -279,11 +279,10 @@
       </div>
     </div>
 
-    <script type="module">
-      import * as THREE from "https://esm.sh/three@0.180.0";
-      import { MindARThree } from "https://esm.sh/mind-ar@1.2.5/dist/mindar-image-three.prod.js?external=three";
-      import { Compiler } from "https://esm.sh/mind-ar@1.2.5/dist/mindar-image.prod.js";
-
+    <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image.prod.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+    <script>
       const overlay = document.getElementById("overlay");
       const overlayCard = overlay.querySelector(".card");
       const sceneHost = document.getElementById("scene");
@@ -302,28 +301,25 @@
 
       const TARGET_CACHE_DB = "card-xray-cache";
       const TARGET_CACHE_STORE = "targets";
-      const TARGET_CACHE_KEY = "bicycle-back-v2";
+      const TARGET_CACHE_KEY = "bicycle-back-v3";
       const TARGET_IMAGE_PATH = "./assets/bicyclebackside.jpg";
       const TARGET_IMAGE_WIDTH = 661;
       const TARGET_IMAGE_HEIGHT = 1038;
 
       let appStarted = false;
       let startInFlight = false;
+      let tapCount = 0;
       let revealTarget = 0;
       let revealStrength = 0;
       let targetBufferPromise = null;
       let targetObjectUrl = null;
-      let mindarThree = null;
-      let anchor = null;
-      let revealMaterial = null;
-      let rafId = 0;
-      let trackedVisible = false;
-      let lastFoundAt = 0;
-      let tapCount = 0;
+      let sceneEl = null;
+      let revealPlaneEl = null;
+      let renderTimer = 0;
 
-      function setStatus(line, detail = "") {
+      function setStatus(line, detail) {
         statusLine.textContent = line;
-        statusDetail.textContent = detail;
+        statusDetail.textContent = detail || "";
       }
 
       function setMessage(text) {
@@ -337,7 +333,7 @@
 
       function noteTap(source) {
         tapCount += 1;
-        setStatus(`Tap received (${tapCount}).`, `The page received your ${source} tap and is starting the camera flow.`);
+        setStatus("Tap received (" + tapCount + ").", "The page received your " + source + " tap and is starting the camera flow.");
       }
 
       function loadReferenceImage() {
@@ -370,7 +366,7 @@
             request.onsuccess = () => resolve(request.result || null);
             request.onerror = () => reject(request.error || new Error("indexeddb-read-failed"));
           });
-        } catch {
+        } catch (error) {
           return null;
         }
       }
@@ -385,26 +381,27 @@
             request.onsuccess = () => resolve();
             request.onerror = () => reject(request.error || new Error("indexeddb-write-failed"));
           });
-        } catch {
-          // Cache failure should not block use.
+        } catch (error) {
         }
       }
 
       async function ensureTargetBuffer() {
         if (!targetBufferPromise) {
           targetBufferPromise = (async () => {
+            if (!window.MINDAR || !window.MINDAR.IMAGE || !window.MINDAR.IMAGE.Compiler) {
+              throw new Error("mindar-global-missing");
+            }
             const cached = await getCachedTargetBuffer();
             if (cached) {
               setStatus("Tracker ready.", "Using the cached MindAR Bicycle target. You can start the camera now.");
               return cached;
             }
-
             setStatus("Compiling card target...", "First run only. Building a MindAR image target from the Bicycle back reference.");
             const image = await loadReferenceImage();
-            const compiler = new Compiler();
+            const compiler = new window.MINDAR.IMAGE.Compiler();
             await compiler.compileImageTargets([image], (progress) => {
               const percent = Math.max(1, Math.min(100, Math.round(progress)));
-              setStatus(`Compiling card target... ${percent}%`, "This only needs to happen once per device unless the cache is cleared.");
+              setStatus("Compiling card target... " + percent + "%", "This only needs to happen once per device unless the cache is cleared.");
             });
             const exported = compiler.exportData();
             const buffer = exported instanceof Uint8Array ? exported.buffer.slice(exported.byteOffset, exported.byteOffset + exported.byteLength) : exported;
@@ -438,99 +435,139 @@
         ctx.restore();
       }
 
-      function buildRevealTexture() {
+      function buildRevealDataUrl() {
         const canvas = document.createElement("canvas");
         canvas.width = 700;
         canvas.height = 980;
         const ctx = canvas.getContext("2d");
-
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = "rgba(183, 231, 255, 0.07)";
         ctx.fillRect(24, 24, canvas.width - 48, canvas.height - 48);
-
         ctx.strokeStyle = "rgba(180, 236, 255, 0.32)";
         ctx.lineWidth = 8;
         ctx.strokeRect(24, 24, canvas.width - 48, canvas.height - 48);
-
         ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
         ctx.font = "bold 90px Georgia, serif";
         ctx.fillText("4", 70, 120);
         ctx.fillText("4", canvas.width - 120, canvas.height - 60);
-
         drawHeart(ctx, 118, 170, 22, "rgba(255, 130, 158, 0.95)");
         ctx.save();
         ctx.translate(canvas.width - 118, canvas.height - 170);
         ctx.rotate(Math.PI);
         drawHeart(ctx, 0, 0, 22, "rgba(255, 130, 158, 0.95)");
         ctx.restore();
-
         drawHeart(ctx, canvas.width * 0.38, canvas.height * 0.37, 58, "rgba(255, 118, 148, 0.95)");
         drawHeart(ctx, canvas.width * 0.62, canvas.height * 0.37, 58, "rgba(255, 118, 148, 0.95)");
         drawHeart(ctx, canvas.width * 0.38, canvas.height * 0.63, 58, "rgba(255, 118, 148, 0.95)");
         drawHeart(ctx, canvas.width * 0.62, canvas.height * 0.63, 58, "rgba(255, 118, 148, 0.95)");
-
-        const texture = new THREE.CanvasTexture(canvas);
-        texture.colorSpace = THREE.SRGBColorSpace;
-        return texture;
+        return canvas.toDataURL("image/png");
       }
 
-      function setupAnchorScene() {
-        const { scene } = mindarThree;
-        scene.add(new THREE.AmbientLight(0xffffff, 1.22));
+      function stopRenderLoop() {
+        if (renderTimer) {
+          cancelAnimationFrame(renderTimer);
+          renderTimer = 0;
+        }
+      }
 
-        anchor = mindarThree.addAnchor(0);
-        anchor.onTargetFound = () => {
-          trackedVisible = true;
-          lastFoundAt = performance.now();
+      function renderFrame() {
+        revealStrength += (revealTarget - revealStrength) * 0.1;
+        if (revealPlaneEl) {
+          revealPlaneEl.setAttribute("material", "opacity", (revealStrength * 0.68).toFixed(3));
+        }
+        revealValue.textContent = revealStrength > 0.05 ? "On" : "Off";
+        renderTimer = requestAnimationFrame(renderFrame);
+      }
+
+      function destroyScene() {
+        stopRenderLoop();
+        if (sceneEl) {
+          sceneEl.parentNode && sceneEl.parentNode.removeChild(sceneEl);
+        }
+        sceneEl = null;
+        revealPlaneEl = null;
+        appStarted = false;
+        trackingValue.textContent = "Idle";
+        confidenceValue.textContent = "0%";
+      }
+
+      function createScene(imageTargetSrc) {
+        const aspect = TARGET_IMAGE_HEIGHT / TARGET_IMAGE_WIDTH;
+        const revealDataUrl = buildRevealDataUrl();
+        sceneHost.innerHTML = "";
+
+        const scene = document.createElement("a-scene");
+        scene.setAttribute(
+          "mindar-image",
+          "imageTargetSrc: " + imageTargetSrc + "; maxTrack: 1; uiLoading: no; uiScanning: no; uiError: no; filterBeta: 500;"
+        );
+        scene.setAttribute("embedded", "");
+        scene.setAttribute("color-space", "sRGB");
+        scene.setAttribute("renderer", "colorManagement: true; physicallyCorrectLights: false");
+        scene.setAttribute("vr-mode-ui", "enabled: false");
+        scene.setAttribute("device-orientation-permission-ui", "enabled: false");
+
+        const assets = document.createElement("a-assets");
+        const revealImg = document.createElement("img");
+        revealImg.setAttribute("id", "revealCard");
+        revealImg.setAttribute("src", revealDataUrl);
+        assets.appendChild(revealImg);
+        scene.appendChild(assets);
+
+        const camera = document.createElement("a-camera");
+        camera.setAttribute("position", "0 0 0");
+        camera.setAttribute("look-controls", "enabled: false");
+        scene.appendChild(camera);
+
+        const target = document.createElement("a-entity");
+        target.setAttribute("mindar-image-target", "targetIndex: 0");
+
+        const glow = document.createElement("a-plane");
+        glow.setAttribute("width", "1.06");
+        glow.setAttribute("height", (aspect * 1.06).toFixed(3));
+        glow.setAttribute("position", "0 0 -0.001");
+        glow.setAttribute("material", "color: #8ae8ff; transparent: true; opacity: 0.08;");
+        target.appendChild(glow);
+
+        const revealPlane = document.createElement("a-plane");
+        revealPlane.setAttribute("width", "1");
+        revealPlane.setAttribute("height", aspect.toFixed(3));
+        revealPlane.setAttribute("position", "0 0 0.01");
+        revealPlane.setAttribute("material", "src: #revealCard; transparent: true; opacity: 0;");
+        target.appendChild(revealPlane);
+        revealPlaneEl = revealPlane;
+
+        target.addEventListener("targetFound", () => {
           trackingValue.textContent = "Locked";
           confidenceValue.textContent = "100%";
           setStatus("Card tracked.", "MindAR has the Bicycle back locked. Tap X-Ray to fade in the four of hearts.");
-        };
-        anchor.onTargetLost = () => {
-          trackedVisible = false;
+        });
+        target.addEventListener("targetLost", () => {
           trackingValue.textContent = "Searching";
           confidenceValue.textContent = "0%";
           setStatus("Tracking lost.", "Show the full blue Bicycle back again so MindAR can reacquire it.");
-        };
-
-        const aspect = TARGET_IMAGE_HEIGHT / TARGET_IMAGE_WIDTH;
-        const group = anchor.group;
-
-        const glow = new THREE.Mesh(
-          new THREE.PlaneGeometry(1.06, aspect * 1.06),
-          new THREE.MeshBasicMaterial({
-            color: 0x8ae8ff,
-            transparent: true,
-            opacity: 0.08
-          })
-        );
-        glow.position.z = -0.001;
-        group.add(glow);
-
-        const outline = new THREE.LineLoop(
-          new THREE.BufferGeometry().setFromPoints([
-            new THREE.Vector3(-0.5, aspect * 0.5, 0.003),
-            new THREE.Vector3(0.5, aspect * 0.5, 0.003),
-            new THREE.Vector3(0.5, -aspect * 0.5, 0.003),
-            new THREE.Vector3(-0.5, -aspect * 0.5, 0.003)
-          ]),
-          new THREE.LineBasicMaterial({
-            color: 0xdff6ff,
-            transparent: true,
-            opacity: 0.46
-          })
-        );
-        group.add(outline);
-
-        revealMaterial = new THREE.MeshBasicMaterial({
-          map: buildRevealTexture(),
-          transparent: true,
-          opacity: 0,
-          depthWrite: false
         });
-        const revealPlane = new THREE.Mesh(new THREE.PlaneGeometry(1, aspect), revealMaterial);
-        revealPlane.position.z = 0.008;
-        group.add(revealPlane);
+
+        scene.addEventListener("arReady", () => {
+          appStarted = true;
+          overlay.classList.add("hidden");
+          xrayBtn.disabled = false;
+          resetBtn.disabled = false;
+          trackingValue.textContent = "Searching";
+          confidenceValue.textContent = "0%";
+          setStatus("Camera live.", "Show the full blue Bicycle back to the rear camera. MindAR will lock when the image target is recognized.");
+          stopRenderLoop();
+          renderFrame();
+        });
+        scene.addEventListener("arError", () => {
+          setStatus("Startup failed.", "MindAR reported an AR startup error. Reload once and retry.");
+          setMessage("MindAR reported an AR startup error. Reload once and retry.");
+          destroyScene();
+        });
+
+        scene.appendChild(target);
+        sceneHost.appendChild(scene);
+        sceneEl = scene;
       }
 
       async function startCamera() {
@@ -543,43 +580,18 @@
           if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
             throw new Error("getusermedia-unavailable");
           }
-
           setStatus("Preparing MindAR target...", "Loading the cached Bicycle target or compiling it if this is the first run.");
           const imageTargetSrc = await ensureTargetUrl();
-          setStatus("Starting back camera...", "Safari should prompt for the rear camera if needed.");
-
-          if (mindarThree) {
-            stopCamera();
-          }
-
-          mindarThree = new MindARThree({
-            container: sceneHost,
-            imageTargetSrc,
-            maxTrack: 1,
-            uiLoading: "no",
-            uiScanning: "no",
-            uiError: "no",
-            warmupTolerance: 2,
-            missTolerance: 4
-          });
-          setupAnchorScene();
-          await mindarThree.start();
-
-          appStarted = true;
-          overlay.classList.add("hidden");
-          xrayBtn.disabled = false;
-          resetBtn.disabled = false;
-          trackingValue.textContent = "Searching";
-          confidenceValue.textContent = "0%";
-          setStatus("Camera live.", "Show the full blue Bicycle back to the rear camera. MindAR will lock when the image target is recognized.");
-          renderFrame();
+          setStatus("Starting scene...", "Building the camera scene for the rear camera.");
+          destroyScene();
+          createScene(imageTargetSrc);
         } catch (error) {
           let detail = "The camera or MindAR tracker could not start.";
           if (error && error.name === "NotAllowedError") detail = "Camera permission was denied. Allow camera access in Safari settings and try again.";
           else if (error && error.name === "NotReadableError") detail = "The camera appears busy or unavailable. Close other camera apps or tabs and try again.";
           else if (error && error.message === "reference-image-failed") detail = "The bundled Bicycle card image could not be loaded, so the target could not be prepared.";
           else if (error && error.message === "getusermedia-unavailable") detail = "This browser is not exposing camera APIs to the page. Please retry in Safari on iPhone.";
-          else if (error instanceof TypeError) detail = "MindAR or one of its web modules failed to load. Reload once and try again.";
+          else if (error && error.message === "mindar-global-missing") detail = "The MindAR scripts did not load correctly on this device yet. Reload once and try again.";
           setStatus("Startup failed.", detail);
           setMessage(detail);
           console.error(error);
@@ -588,46 +600,6 @@
           startBtn.disabled = false;
           retryBtn.disabled = false;
         }
-      }
-
-      function renderFrame() {
-        if (!mindarThree || !appStarted) return;
-        revealStrength += (revealTarget - revealStrength) * 0.1;
-        if (revealMaterial) {
-          revealMaterial.opacity = revealStrength * 0.68;
-        }
-        revealValue.textContent = revealStrength > 0.05 ? "On" : "Off";
-
-        if (!trackedVisible && performance.now() - lastFoundAt > 500) {
-          trackingValue.textContent = "Searching";
-          confidenceValue.textContent = "0%";
-        }
-
-        mindarThree.renderer.render(mindarThree.scene, mindarThree.camera);
-        mindarThree.cssRenderer.render(mindarThree.cssScene, mindarThree.camera);
-        rafId = requestAnimationFrame(renderFrame);
-      }
-
-      function stopCamera() {
-        cancelAnimationFrame(rafId);
-        rafId = 0;
-        if (mindarThree) {
-          try {
-            mindarThree.stop();
-          } catch {
-            // Ignore stop errors from partially started sessions.
-          }
-        }
-        while (sceneHost.firstChild) {
-          sceneHost.removeChild(sceneHost.firstChild);
-        }
-        mindarThree = null;
-        anchor = null;
-        revealMaterial = null;
-        appStarted = false;
-        trackedVisible = false;
-        trackingValue.textContent = "Idle";
-        confidenceValue.textContent = "0%";
       }
 
       function bindStartAction(element, source) {
@@ -641,9 +613,7 @@
             return;
           }
           noteTap(source);
-          queueMicrotask(() => {
-            startCamera();
-          });
+          setTimeout(startCamera, 0);
         };
         element.addEventListener("click", activate);
         element.addEventListener("touchend", activate, { passive: false });
@@ -668,9 +638,9 @@
         revealTarget = 0;
         setStatus("Reveal hidden.", "Tap X-Ray again to fade the card secret back in.");
       });
-      window.addEventListener("pagehide", stopCamera);
+      window.addEventListener("pagehide", destroyScene);
       window.addEventListener("error", (event) => {
-        const text = event?.message || "Unexpected page error.";
+        const text = event && event.message ? event.message : "Unexpected page error.";
         setStatus("Runtime error.", text);
         setMessage(text);
       });
