@@ -378,6 +378,7 @@
       let appStarted = false;
       let startInFlight = false;
       let visionModulePromise = null;
+      let skeletonImage = null;
 
       const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -395,9 +396,13 @@
       const xrayGroup = new THREE.Group();
       scene.add(xrayGroup);
 
-      const textureLoader = new THREE.TextureLoader();
+      const xrayCanvas = document.createElement("canvas");
+      xrayCanvas.width = 1024;
+      xrayCanvas.height = 1024;
+      const xrayCtx = xrayCanvas.getContext("2d");
+      const xrayTexture = new THREE.CanvasTexture(xrayCanvas);
       const xrayMaterial = new THREE.MeshBasicMaterial({
-        map: null,
+        map: xrayTexture,
         transparent: true,
         opacity: 0.98,
         depthTest: false
@@ -492,25 +497,37 @@
         return visionModulePromise;
       }
 
-      function applyXrayTexture(texture) {
-        texture.colorSpace = THREE.SRGBColorSpace;
-        texture.minFilter = THREE.LinearFilter;
-        texture.magFilter = THREE.LinearFilter;
-        xrayMaterial.map = texture;
-        xrayMaterial.needsUpdate = true;
+      function drawEmptyXray() {
+        xrayCtx.clearRect(0, 0, xrayCanvas.width, xrayCanvas.height);
+        const bg = xrayCtx.createLinearGradient(0, 0, 0, xrayCanvas.height);
+        bg.addColorStop(0, "rgba(2, 10, 18, 0.98)");
+        bg.addColorStop(1, "rgba(1, 7, 14, 0.98)");
+        xrayCtx.fillStyle = bg;
+        xrayCtx.fillRect(0, 0, xrayCanvas.width, xrayCanvas.height);
+        xrayCtx.strokeStyle = "rgba(172, 229, 255, 0.22)";
+        xrayCtx.lineWidth = 10;
+        xrayCtx.strokeRect(18, 18, xrayCanvas.width - 36, xrayCanvas.height - 36);
+        xrayTexture.needsUpdate = true;
       }
 
-      function loadXrayTexture(urls, index = 0) {
+      function loadSkeletonImage(urls, index = 0) {
         if (index >= urls.length) {
           setStatus("X-ray image failed to load.", "The live frame still works, but the embedded medical image could not be loaded.");
           return;
         }
-        textureLoader.load(urls[index], applyXrayTexture, undefined, () => loadXrayTexture(urls, index + 1));
+        const image = new Image();
+        image.crossOrigin = "anonymous";
+        image.onload = () => {
+          skeletonImage = image;
+          drawEmptyXray();
+        };
+        image.onerror = () => loadSkeletonImage(urls, index + 1);
+        image.src = urls[index];
       }
 
-      loadXrayTexture([
-        "./assets/chest-xray.png",
-        "https://upload.wikimedia.org/wikipedia/commons/c/c8/Chest_Xray_PA_3-8-2010.png"
+      loadSkeletonImage([
+        "./assets/full-body-skeleton.svg",
+        "https://upload.wikimedia.org/wikipedia/commons/a/ac/Human_skeleton_front_no-text_no-color.svg"
       ]);
 
       async function ensureLandmarkers() {
@@ -641,6 +658,90 @@
         };
       }
 
+      function sceneToNormalized(point) {
+        return {
+          x: 0.5 - point.x / (camera.right * 2),
+          y: 0.5 - point.y / 2
+        };
+      }
+
+      function computeBodyRect(poseLandmarks) {
+        if (!poseLandmarks) return null;
+        const nose = poseLandmarks[0];
+        const leftShoulder = poseLandmarks[11];
+        const rightShoulder = poseLandmarks[12];
+        const leftHip = poseLandmarks[23];
+        const rightHip = poseLandmarks[24];
+        if (!nose || !leftShoulder || !rightShoulder || !leftHip || !rightHip) return null;
+
+        const shoulderMidX = (leftShoulder.x + rightShoulder.x) * 0.5;
+        const shoulderMidY = (leftShoulder.y + rightShoulder.y) * 0.5;
+        const hipMidY = (leftHip.y + rightHip.y) * 0.5;
+        const shoulderWidth = Math.abs(leftShoulder.x - rightShoulder.x);
+        const hipWidth = Math.abs(leftHip.x - rightHip.x);
+        const torsoHeight = Math.max(0.12, Math.abs(hipMidY - shoulderMidY));
+        const leftAnkle = poseLandmarks[27];
+        const rightAnkle = poseLandmarks[28];
+        const ankleY = Math.max(leftAnkle?.y ?? hipMidY + torsoHeight * 3.2, rightAnkle?.y ?? hipMidY + torsoHeight * 3.2);
+        const width = Math.max(shoulderWidth, hipWidth) * 2.35;
+        const height = Math.max(ankleY - (nose.y - torsoHeight * 0.62), torsoHeight * 4.2);
+        const top = nose.y - torsoHeight * 0.62;
+        const left = shoulderMidX - width * 0.5;
+        return { left, top, width, height };
+      }
+
+      function redrawXrayWindow(frameRect, poseRect) {
+        drawEmptyXray();
+        if (!skeletonImage || !frameRect || !poseRect) return;
+
+        const frameLeft = Math.min(frameRect.topLeft.x, frameRect.bottomLeft.x);
+        const frameRight = Math.max(frameRect.topRight.x, frameRect.bottomRight.x);
+        const frameTop = Math.min(frameRect.topLeft.y, frameRect.topRight.y);
+        const frameBottom = Math.max(frameRect.bottomLeft.y, frameRect.bottomRight.y);
+
+        const srcX = ((frameLeft - poseRect.left) / poseRect.width) * skeletonImage.naturalWidth;
+        const srcY = ((frameTop - poseRect.top) / poseRect.height) * skeletonImage.naturalHeight;
+        const srcW = ((frameRight - frameLeft) / poseRect.width) * skeletonImage.naturalWidth;
+        const srcH = ((frameBottom - frameTop) / poseRect.height) * skeletonImage.naturalHeight;
+        if (srcW <= 2 || srcH <= 2) return;
+
+        const safeX = Math.max(0, srcX);
+        const safeY = Math.max(0, srcY);
+        const safeW = Math.min(skeletonImage.naturalWidth - safeX, srcW);
+        const safeH = Math.min(skeletonImage.naturalHeight - safeY, srcH);
+        if (safeW <= 2 || safeH <= 2) return;
+
+        xrayCtx.save();
+        xrayCtx.filter = "brightness(1.03) contrast(1.2) hue-rotate(185deg) saturate(0.7)";
+        xrayCtx.globalAlpha = 0.96;
+        xrayCtx.drawImage(
+          skeletonImage,
+          safeX,
+          safeY,
+          safeW,
+          safeH,
+          0,
+          0,
+          xrayCanvas.width,
+          xrayCanvas.height
+        );
+        xrayCtx.restore();
+
+        const glow = xrayCtx.createRadialGradient(
+          xrayCanvas.width * 0.5,
+          xrayCanvas.height * 0.45,
+          20,
+          xrayCanvas.width * 0.5,
+          xrayCanvas.height * 0.45,
+          xrayCanvas.width * 0.52
+        );
+        glow.addColorStop(0, "rgba(178, 233, 255, 0.12)");
+        glow.addColorStop(1, "rgba(0, 0, 0, 0)");
+        xrayCtx.fillStyle = glow;
+        xrayCtx.fillRect(0, 0, xrayCanvas.width, xrayCanvas.height);
+        xrayTexture.needsUpdate = true;
+      }
+
       function updateMarkers(points) {
         fingertipMarkers.forEach((marker, index) => {
           const point = points[index];
@@ -709,14 +810,25 @@
         });
         frameOutline.geometry.attributes.position.needsUpdate = true;
 
+        const frameRect = {
+          topLeft: sceneToNormalized(topLeft),
+          topRight: sceneToNormalized(topRight),
+          bottomLeft: sceneToNormalized(bottomLeft),
+          bottomRight: sceneToNormalized(bottomRight)
+        };
+
         let poseFactor = 0.55;
         let tilt = 0;
+        let poseRect = null;
         if (poseLandmarks) {
           const shoulders = toScenePoint(poseLandmarks[11]).add(toScenePoint(poseLandmarks[12])).multiplyScalar(0.5);
           const hips = toScenePoint(poseLandmarks[23]).add(toScenePoint(poseLandmarks[24])).multiplyScalar(0.5);
           poseFactor = THREE.MathUtils.clamp(poseConfidence(poseLandmarks), 0.2, 1);
           tilt = Math.atan2(shoulders.y - hips.y, shoulders.x - hips.x) - Math.PI / 2;
+          poseRect = computeBodyRect(poseLandmarks);
         }
+
+        redrawXrayWindow(frameRect, poseRect);
 
         xrayPlate.material.opacity = 0.88 + poseFactor * 0.1;
         glowPlate.material.opacity = 0.03 + poseFactor * 0.05;
