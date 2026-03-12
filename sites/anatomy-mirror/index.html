@@ -1,0 +1,791 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no"
+    />
+    <title>Anatomy Mirror</title>
+    <style>
+      :root {
+        --bg: #050816;
+        --panel: rgba(7, 13, 27, 0.76);
+        --panel-strong: rgba(7, 13, 27, 0.92);
+        --border: rgba(137, 198, 255, 0.34);
+        --text: #f2f8ff;
+        --muted: rgba(222, 236, 255, 0.72);
+        --accent: #91e4ff;
+        --accent-2: #bde7ff;
+        --gold: #ffd16f;
+        --danger: #ff8e8e;
+      }
+
+      * {
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      html,
+      body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 50% 15%, rgba(74, 126, 218, 0.18), transparent 26%),
+          radial-gradient(circle at 50% 85%, rgba(54, 196, 255, 0.09), transparent 28%),
+          linear-gradient(180deg, #071120 0%, #03050d 100%);
+        color: var(--text);
+        font-family: "Avenir Next", "Segoe UI", sans-serif;
+      }
+
+      #app,
+      #video,
+      #scene {
+        position: fixed;
+        inset: 0;
+      }
+
+      #app {
+        overflow: hidden;
+      }
+
+      #video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transform: scaleX(-1);
+        opacity: 0.96;
+        filter: saturate(0.96) contrast(1.04);
+        background: #08111c;
+      }
+
+      #scene {
+        pointer-events: none;
+      }
+
+      .scanlines,
+      .vignette {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      .scanlines {
+        opacity: 0.15;
+        background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+        background-size: 100% 6px;
+        mix-blend-mode: screen;
+      }
+
+      .vignette {
+        background:
+          radial-gradient(circle at 50% 50%, transparent 34%, rgba(0, 0, 0, 0.26) 82%),
+          linear-gradient(180deg, rgba(6, 10, 18, 0.22), rgba(6, 10, 18, 0.02) 34%, rgba(3, 6, 12, 0.42));
+      }
+
+      #hud,
+      #chip,
+      #footer,
+      #overlay,
+      #message {
+        position: fixed;
+        z-index: 10;
+      }
+
+      #hud,
+      #chip,
+      #footer,
+      #message .card,
+      #overlay .card {
+        border: 1px solid var(--border);
+        backdrop-filter: blur(16px);
+        box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
+      }
+
+      #hud {
+        top: max(14px, env(safe-area-inset-top));
+        left: 14px;
+        padding: 12px 14px;
+        border-radius: 18px;
+        background: var(--panel);
+        min-width: 220px;
+      }
+
+      .hud-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 18px;
+        margin: 4px 0;
+        font-size: 0.9rem;
+      }
+
+      .label {
+        color: var(--muted);
+      }
+
+      .value {
+        color: var(--accent);
+        font-weight: 700;
+      }
+
+      #chip {
+        top: max(14px, env(safe-area-inset-top));
+        right: 14px;
+        padding: 10px 12px;
+        border-radius: 999px;
+        background: rgba(8, 14, 27, 0.72);
+        color: var(--accent-2);
+        font-size: 0.84rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      #footer {
+        left: 50%;
+        bottom: max(14px, env(safe-area-inset-bottom));
+        transform: translateX(-50%);
+        width: min(640px, calc(100vw - 24px));
+        padding: 12px 14px;
+        border-radius: 18px;
+        background: rgba(8, 14, 27, 0.64);
+        color: var(--muted);
+        font-size: 0.88rem;
+        text-align: center;
+      }
+
+      #overlay,
+      #message {
+        inset: 0;
+        display: grid;
+        place-items: center;
+        padding: 16px;
+      }
+
+      #overlay {
+        background:
+          radial-gradient(circle at 50% 16%, rgba(88, 131, 225, 0.26), transparent 28%),
+          rgba(3, 7, 14, 0.72);
+      }
+
+      #overlay.hidden,
+      #message.hidden {
+        display: none;
+      }
+
+      .card {
+        width: min(780px, calc(100vw - 24px));
+        padding: 26px;
+        border-radius: 28px;
+        background:
+          radial-gradient(circle at top, rgba(140, 224, 255, 0.12), transparent 26%),
+          var(--panel-strong);
+      }
+
+      h1 {
+        margin: 0 0 10px;
+        font-size: clamp(2.1rem, 6vw, 4.2rem);
+        line-height: 0.96;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      p {
+        margin: 8px 0;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      .lede {
+        color: var(--text);
+        font-size: 1rem;
+      }
+
+      .actions {
+        display: flex;
+        gap: 12px;
+        margin-top: 18px;
+        flex-wrap: wrap;
+      }
+
+      button {
+        border: 1px solid rgba(255, 209, 111, 0.4);
+        border-radius: 999px;
+        padding: 12px 18px;
+        background: linear-gradient(180deg, #ffd97f 0%, #d29135 100%);
+        color: #101722;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        cursor: pointer;
+      }
+
+      button.secondary {
+        border-color: rgba(145, 228, 255, 0.34);
+        background: rgba(18, 31, 49, 0.84);
+        color: var(--text);
+      }
+
+      .small {
+        font-size: 0.84rem;
+      }
+
+      .notice {
+        margin-top: 12px;
+        color: rgba(255, 245, 214, 0.88);
+      }
+
+      @media (max-width: 640px) {
+        #hud {
+          min-width: 0;
+          max-width: calc(100vw - 28px);
+        }
+
+        #chip {
+          top: auto;
+          right: 14px;
+          bottom: max(84px, calc(env(safe-area-inset-bottom) + 72px));
+        }
+
+        #footer {
+          font-size: 0.8rem;
+        }
+
+        .card {
+          padding: 22px 18px;
+          border-radius: 24px;
+        }
+      }
+    </style>
+    <script
+      src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.32/vision_bundle.js"
+      crossorigin="anonymous"
+    ></script>
+  </head>
+  <body>
+    <div id="app">
+      <video id="video" playsinline muted></video>
+      <div class="scanlines"></div>
+      <div class="vignette"></div>
+      <div id="scene"></div>
+
+      <div id="hud">
+        <div class="hud-row"><span class="label">Tracking</span><span id="trackingValue" class="value">Idle</span></div>
+        <div class="hud-row"><span class="label">Confidence</span><span id="confidenceValue" class="value">0%</span></div>
+        <div class="hud-row"><span class="label">Torso Angle</span><span id="angleValue" class="value">0 deg</span></div>
+      </div>
+
+      <div id="chip">MediaPipe + Three.js</div>
+
+      <div id="footer">
+        Raise your upper body into frame. Best results come from good light, a still phone, and your shoulders visible.
+      </div>
+
+      <div id="overlay">
+        <div class="card">
+          <h1>Anatomy Mirror</h1>
+          <p class="lede">
+            Live front-camera skeletal visualization inspired by the reference post: MediaPipe tracks your pose, and Three.js renders an x-ray chest panel anchored to your torso in real time.
+          </p>
+          <p>
+            This version is built as a static browser app for GitHub Pages and iPhone Safari. It recreates the same core interaction and visual effect, while using original rendering and UI code.
+          </p>
+          <p>
+            Works best in portrait mode with your chest and both shoulders visible. Camera access requires HTTPS, which GitHub Pages provides.
+          </p>
+          <div class="actions">
+            <button id="startBtn" type="button">Start Camera</button>
+            <button id="retryBtn" class="secondary" type="button">Retry Permissions</button>
+          </div>
+          <p class="notice small">If Safari asks, allow camera access and keep the phone on the front-facing camera.</p>
+        </div>
+      </div>
+
+      <div id="message" class="hidden">
+        <div class="card">
+          <h1 style="font-size: clamp(1.6rem, 5vw, 2.4rem)">Camera Needed</h1>
+          <p id="messageText">Camera access failed.</p>
+          <div class="actions">
+            <button id="messageBtn" type="button">Try Again</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import * as THREE from "https://unpkg.com/three@0.180.0/build/three.module.js";
+
+      const { FilesetResolver, PoseLandmarker } = window.vision;
+
+      const video = document.getElementById("video");
+      const sceneHost = document.getElementById("scene");
+      const overlay = document.getElementById("overlay");
+      const message = document.getElementById("message");
+      const messageText = document.getElementById("messageText");
+      const messageBtn = document.getElementById("messageBtn");
+      const startBtn = document.getElementById("startBtn");
+      const retryBtn = document.getElementById("retryBtn");
+      const trackingValue = document.getElementById("trackingValue");
+      const confidenceValue = document.getElementById("confidenceValue");
+      const angleValue = document.getElementById("angleValue");
+
+      const CONNECTIONS = [
+        [11, 12], [11, 13], [13, 15], [12, 14], [14, 16],
+        [11, 23], [12, 24], [23, 24], [23, 25], [25, 27],
+        [24, 26], [26, 28]
+      ];
+      const IMPORTANT_POINTS = [11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28];
+      const JOINT_NAMES = {
+        11: "L Shoulder",
+        12: "R Shoulder",
+        23: "L Hip",
+        24: "R Hip"
+      };
+
+      let poseLandmarker;
+      let stream;
+      let rafId = 0;
+      let lastVideoTime = -1;
+      let appStarted = false;
+      let trackingReady = false;
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      renderer.setClearColor(0x000000, 0);
+      sceneHost.appendChild(renderer.domElement);
+
+      const scene = new THREE.Scene();
+      const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, -10, 10);
+      camera.position.z = 5;
+      scene.add(camera);
+
+      const ambient = new THREE.AmbientLight(0xffffff, 1.1);
+      scene.add(ambient);
+      const rim = new THREE.PointLight(0x77d8ff, 2.2, 6);
+      rim.position.set(0, 0, 2);
+      scene.add(rim);
+
+      const anatomyGroup = new THREE.Group();
+      anatomyGroup.renderOrder = 4;
+      scene.add(anatomyGroup);
+
+      const skeletonMaterial = new THREE.LineBasicMaterial({
+        color: 0x9fe6ff,
+        transparent: true,
+        opacity: 0.85,
+        depthTest: false
+      });
+      const skeletonGeometry = new THREE.BufferGeometry();
+      const skeletonArray = new Float32Array(CONNECTIONS.length * 2 * 3);
+      skeletonGeometry.setAttribute("position", new THREE.BufferAttribute(skeletonArray, 3));
+      const skeletonLines = new THREE.LineSegments(skeletonGeometry, skeletonMaterial);
+      skeletonLines.renderOrder = 5;
+      scene.add(skeletonLines);
+
+      const pointMaterial = new THREE.MeshBasicMaterial({
+        color: 0xd8f6ff,
+        transparent: true,
+        opacity: 0.9,
+        depthTest: false
+      });
+      const pointGeometry = new THREE.CircleGeometry(0.018, 20);
+      const pointMeshes = new Map();
+      IMPORTANT_POINTS.forEach((index) => {
+        const mesh = new THREE.Mesh(pointGeometry, pointMaterial.clone());
+        mesh.visible = false;
+        mesh.renderOrder = 6;
+        scene.add(mesh);
+        pointMeshes.set(index, mesh);
+      });
+
+      const torsoPanel = new THREE.Group();
+      anatomyGroup.add(torsoPanel);
+
+      const plateTexture = buildPlateTexture();
+      const plateMaterial = new THREE.MeshBasicMaterial({
+        map: plateTexture,
+        transparent: true,
+        opacity: 0.86,
+        depthTest: false
+      });
+      const plate = new THREE.Mesh(new THREE.PlaneGeometry(1, 1.42), plateMaterial);
+      torsoPanel.add(plate);
+
+      const halo = new THREE.Mesh(
+        new THREE.PlaneGeometry(1.18, 1.6),
+        new THREE.MeshBasicMaterial({
+          color: 0x67d7ff,
+          transparent: true,
+          opacity: 0.12,
+          depthTest: false
+        })
+      );
+      halo.position.z = -0.01;
+      torsoPanel.add(halo);
+
+      const outline = new THREE.LineLoop(
+        new THREE.BufferGeometry().setFromPoints([
+          new THREE.Vector3(-0.52, 0.68, 0.01),
+          new THREE.Vector3(0.52, 0.68, 0.01),
+          new THREE.Vector3(0.52, -0.68, 0.01),
+          new THREE.Vector3(-0.52, -0.68, 0.01)
+        ]),
+        new THREE.LineBasicMaterial({
+          color: 0xa5efff,
+          transparent: true,
+          opacity: 0.82,
+          depthTest: false
+        })
+      );
+      torsoPanel.add(outline);
+
+      const sternum = new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints([
+          new THREE.Vector3(0, 0.48, 0.02),
+          new THREE.Vector3(0, -0.48, 0.02)
+        ]),
+        new THREE.LineBasicMaterial({
+          color: 0xe8fbff,
+          transparent: true,
+          opacity: 0.72,
+          depthTest: false
+        })
+      );
+      torsoPanel.add(sternum);
+
+      const ribLines = new THREE.Group();
+      torsoPanel.add(ribLines);
+      for (let i = 0; i < 6; i += 1) {
+        const y = 0.4 - i * 0.13;
+        const left = ribCurve(-1, y);
+        const right = ribCurve(1, y);
+        ribLines.add(
+          new THREE.Line(
+            new THREE.BufferGeometry().setFromPoints(left),
+            new THREE.LineBasicMaterial({
+              color: 0xd8f7ff,
+              transparent: true,
+              opacity: 0.52,
+              depthTest: false
+            })
+          )
+        );
+        ribLines.add(
+          new THREE.Line(
+            new THREE.BufferGeometry().setFromPoints(right),
+            new THREE.LineBasicMaterial({
+              color: 0xd8f7ff,
+              transparent: true,
+              opacity: 0.52,
+              depthTest: false
+            })
+          )
+        );
+      }
+
+      const vertebrae = new THREE.Group();
+      torsoPanel.add(vertebrae);
+      for (let i = 0; i < 8; i += 1) {
+        const vertebra = new THREE.Mesh(
+          new THREE.CircleGeometry(0.028 - i * 0.0015, 18),
+          new THREE.MeshBasicMaterial({
+            color: 0xf2fdff,
+            transparent: true,
+            opacity: 0.66,
+            depthTest: false
+          })
+        );
+        vertebra.position.set(0, 0.42 - i * 0.12, 0.02);
+        vertebrae.add(vertebra);
+      }
+
+      const smoothed = new Map();
+      IMPORTANT_POINTS.forEach((index) => smoothed.set(index, new THREE.Vector3()));
+
+      function buildPlateTexture() {
+        const canvas = document.createElement("canvas");
+        canvas.width = 768;
+        canvas.height = 1024;
+        const g = canvas.getContext("2d");
+
+        const bg = g.createLinearGradient(0, 0, 0, canvas.height);
+        bg.addColorStop(0, "rgba(165, 232, 255, 0.38)");
+        bg.addColorStop(0.5, "rgba(76, 176, 224, 0.18)");
+        bg.addColorStop(1, "rgba(26, 90, 137, 0.14)");
+        g.fillStyle = bg;
+        g.fillRect(0, 0, canvas.width, canvas.height);
+
+        const glow = g.createRadialGradient(canvas.width * 0.5, canvas.height * 0.38, 0, canvas.width * 0.5, canvas.height * 0.38, canvas.width * 0.42);
+        glow.addColorStop(0, "rgba(233, 250, 255, 0.62)");
+        glow.addColorStop(0.35, "rgba(175, 231, 255, 0.28)");
+        glow.addColorStop(1, "rgba(0, 0, 0, 0)");
+        g.fillStyle = glow;
+        g.fillRect(0, 0, canvas.width, canvas.height);
+
+        g.strokeStyle = "rgba(233, 250, 255, 0.78)";
+        g.lineWidth = 10;
+        g.beginPath();
+        g.moveTo(canvas.width * 0.5, 140);
+        g.lineTo(canvas.width * 0.5, 840);
+        g.stroke();
+
+        g.lineWidth = 6;
+        for (let i = 0; i < 6; i += 1) {
+          const y = 240 + i * 88;
+          drawCanvasRib(g, canvas.width * 0.5, y, -1);
+          drawCanvasRib(g, canvas.width * 0.5, y, 1);
+        }
+
+        g.fillStyle = "rgba(245, 253, 255, 0.82)";
+        for (let i = 0; i < 8; i += 1) {
+          const y = 200 + i * 76;
+          g.beginPath();
+          g.ellipse(canvas.width * 0.5, y, 16, 11, 0, 0, Math.PI * 2);
+          g.fill();
+        }
+
+        g.strokeStyle = "rgba(173, 238, 255, 0.4)";
+        g.lineWidth = 5;
+        g.strokeRect(18, 18, canvas.width - 36, canvas.height - 36);
+
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.needsUpdate = true;
+        return texture;
+      }
+
+      function drawCanvasRib(g, centerX, centerY, direction) {
+        g.beginPath();
+        g.moveTo(centerX, centerY);
+        g.bezierCurveTo(
+          centerX + 52 * direction,
+          centerY - 22,
+          centerX + 130 * direction,
+          centerY - 12,
+          centerX + 176 * direction,
+          centerY + 22
+        );
+        g.stroke();
+      }
+
+      function ribCurve(direction, y) {
+        const points = [];
+        for (let i = 0; i <= 20; i += 1) {
+          const t = i / 20;
+          const x = THREE.MathUtils.lerp(0.02, 0.38, t) * direction;
+          const curveY = y + Math.sin(t * Math.PI) * 0.04 - t * 0.02;
+          points.push(new THREE.Vector3(x, curveY, 0.02));
+        }
+        return points;
+      }
+
+      function setMessage(text) {
+        messageText.textContent = text;
+        message.classList.remove("hidden");
+      }
+
+      function hideMessage() {
+        message.classList.add("hidden");
+      }
+
+      async function ensurePoseLandmarker() {
+        if (poseLandmarker) return poseLandmarker;
+        trackingValue.textContent = "Loading";
+        const vision = await FilesetResolver.forVisionTasks(
+          "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.32/wasm"
+        );
+        poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
+          baseOptions: {
+            modelAssetPath:
+              "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task"
+          },
+          runningMode: "VIDEO",
+          numPoses: 1,
+          minPoseDetectionConfidence: 0.55,
+          minPosePresenceConfidence: 0.55,
+          minTrackingConfidence: 0.55
+        });
+        return poseLandmarker;
+      }
+
+      async function startCamera() {
+        hideMessage();
+        trackingValue.textContent = "Starting";
+        try {
+          await ensurePoseLandmarker();
+          if (stream) {
+            stream.getTracks().forEach((track) => track.stop());
+          }
+          stream = await navigator.mediaDevices.getUserMedia({
+            audio: false,
+            video: {
+              facingMode: "user",
+              width: { ideal: 1280 },
+              height: { ideal: 720 }
+            }
+          });
+          video.srcObject = stream;
+          await video.play();
+          appStarted = true;
+          trackingReady = false;
+          overlay.classList.add("hidden");
+          renderFrame();
+        } catch (error) {
+          trackingValue.textContent = "Blocked";
+          setMessage(
+            error && error.name === "NotAllowedError"
+              ? "Camera permission was denied. Open Safari site settings for this page and allow the camera, then try again."
+              : "The camera or pose model could not start on this device. Refresh the page and try again in Safari over HTTPS."
+          );
+          console.error(error);
+        }
+      }
+
+      function toScreenPoint(landmark) {
+        return new THREE.Vector3((0.5 - landmark.x) * camera.right * 2, (0.5 - landmark.y) * 2, 0);
+      }
+
+      function confidenceFor(landmarks) {
+        const scores = [11, 12, 23, 24]
+          .map((index) => landmarks[index]?.visibility ?? 0)
+          .filter((value) => Number.isFinite(value));
+        if (!scores.length) return 0;
+        return scores.reduce((sum, value) => sum + value, 0) / scores.length;
+      }
+
+      function updateSkeleton(landmarks) {
+        IMPORTANT_POINTS.forEach((index) => {
+          const current = toScreenPoint(landmarks[index]);
+          smoothed.get(index).lerp(current, 0.38);
+        });
+
+        CONNECTIONS.forEach((pair, connectionIndex) => {
+          const a = smoothed.get(pair[0]);
+          const b = smoothed.get(pair[1]);
+          const offset = connectionIndex * 6;
+          skeletonArray[offset] = a.x;
+          skeletonArray[offset + 1] = a.y;
+          skeletonArray[offset + 2] = 0;
+          skeletonArray[offset + 3] = b.x;
+          skeletonArray[offset + 4] = b.y;
+          skeletonArray[offset + 5] = 0;
+        });
+        skeletonGeometry.attributes.position.needsUpdate = true;
+
+        IMPORTANT_POINTS.forEach((index) => {
+          const mesh = pointMeshes.get(index);
+          const point = smoothed.get(index);
+          mesh.position.copy(point);
+          mesh.visible = true;
+        });
+      }
+
+      function updateTorsoPanel(landmarks, confidence) {
+        const leftShoulder = smoothed.get(11);
+        const rightShoulder = smoothed.get(12);
+        const leftHip = smoothed.get(23);
+        const rightHip = smoothed.get(24);
+
+        const shoulderMid = leftShoulder.clone().add(rightShoulder).multiplyScalar(0.5);
+        const hipMid = leftHip.clone().add(rightHip).multiplyScalar(0.5);
+        const torsoCenter = shoulderMid.clone().lerp(hipMid, 0.52);
+        const torsoVector = shoulderMid.clone().sub(hipMid);
+        const shoulderWidth = leftShoulder.distanceTo(rightShoulder);
+        const torsoHeight = shoulderMid.distanceTo(hipMid);
+        const angle = Math.atan2(torsoVector.y, torsoVector.x) - Math.PI / 2;
+
+        torsoPanel.visible = confidence > 0.45;
+        anatomyGroup.visible = confidence > 0.45;
+        skeletonLines.visible = confidence > 0.35;
+
+        torsoPanel.position.copy(torsoCenter);
+        torsoPanel.rotation.z = angle;
+        torsoPanel.scale.set(
+          THREE.MathUtils.clamp(shoulderWidth * 1.2, 0.28, 1.24),
+          THREE.MathUtils.clamp(torsoHeight * 1.95, 0.42, 1.7),
+          1
+        );
+
+        const pulse = 0.8 + Math.sin(performance.now() * 0.005) * 0.08;
+        halo.material.opacity = 0.1 + confidence * 0.12 * pulse;
+        plate.material.opacity = 0.44 + confidence * 0.42;
+        ribLines.children.forEach((line, index) => {
+          line.material.opacity = 0.24 + confidence * 0.38 + Math.sin(performance.now() * 0.003 + index * 0.25) * 0.04;
+        });
+        vertebrae.children.forEach((dot, index) => {
+          dot.material.opacity = 0.34 + confidence * 0.26 + Math.sin(performance.now() * 0.004 + index * 0.33) * 0.05;
+        });
+
+        const torsoAngle = Math.round(THREE.MathUtils.radToDeg(-angle));
+        angleValue.textContent = `${torsoAngle} deg`;
+      }
+
+      function clearPose() {
+        anatomyGroup.visible = false;
+        skeletonLines.visible = false;
+        pointMeshes.forEach((mesh) => {
+          mesh.visible = false;
+        });
+        confidenceValue.textContent = "0%";
+        angleValue.textContent = "0 deg";
+      }
+
+      function renderFrame() {
+        if (!appStarted) return;
+        if (video.readyState >= 2 && poseLandmarker) {
+          if (video.currentTime !== lastVideoTime) {
+            lastVideoTime = video.currentTime;
+            const result = poseLandmarker.detectForVideo(video, performance.now());
+            const landmarks = result.landmarks?.[0];
+            if (landmarks) {
+              const confidence = confidenceFor(landmarks);
+              trackingReady = confidence > 0.45;
+              trackingValue.textContent = trackingReady ? "Locked" : "Searching";
+              confidenceValue.textContent = `${Math.round(confidence * 100)}%`;
+              updateSkeleton(landmarks);
+              updateTorsoPanel(landmarks, confidence);
+            } else {
+              trackingValue.textContent = "Searching";
+              clearPose();
+            }
+          }
+        }
+
+        renderer.render(scene, camera);
+        rafId = requestAnimationFrame(renderFrame);
+      }
+
+      function updateViewport() {
+        const aspect = window.innerWidth / Math.max(window.innerHeight, 1);
+        camera.left = -aspect;
+        camera.right = aspect;
+        camera.top = 1;
+        camera.bottom = -1;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      }
+
+      function stopCamera() {
+        cancelAnimationFrame(rafId);
+        rafId = 0;
+        if (stream) {
+          stream.getTracks().forEach((track) => track.stop());
+          stream = null;
+        }
+        appStarted = false;
+      }
+
+      startBtn.addEventListener("click", startCamera);
+      retryBtn.addEventListener("click", startCamera);
+      messageBtn.addEventListener("click", startCamera);
+      window.addEventListener("resize", updateViewport);
+      window.addEventListener("orientationchange", () => setTimeout(updateViewport, 180));
+      window.addEventListener("pagehide", stopCamera);
+
+      updateViewport();
+      clearPose();
+    </script>
+  </body>
+</html>

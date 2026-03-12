@@ -45,6 +45,11 @@
     "description": "Classic math mind-reading trick that decodes month and day from one final number."
   },
   {
+    "name": "Anatomy Mirror",
+    "path": "./sites/anatomy-mirror/",
+    "description": "iPhone-friendly live camera anatomy overlay using MediaPipe pose tracking and Three.js x-ray rendering."
+  },
+  {
     "name": "Binary Birthday Oracle Cards",
     "path": "./sites/binary-birthday-oracle/",
     "description": "Mind-reading yes/no oracle cards decode day (and optional month) using classic binary magic."
