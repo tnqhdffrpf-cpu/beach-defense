@@ -287,10 +287,6 @@
         }
       }
     </style>
-    <script
-      src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.32/vision_bundle.js"
-      crossorigin="anonymous"
-    ></script>
   </head>
   <body>
     <div id="app">
@@ -377,6 +373,7 @@
       let lastVideoTime = -1;
       let appStarted = false;
       let startInFlight = false;
+      let visionModulePromise = null;
 
       const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -623,12 +620,25 @@
         message.classList.add("hidden");
       }
 
+      async function ensureVisionModule() {
+        if (!visionModulePromise) {
+          setStatus(
+            "Loading tracking library...",
+            "Downloading the MediaPipe runtime in the background so the camera button is ready."
+          );
+          visionModulePromise = import(
+            "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.32/vision_bundle.mjs"
+          );
+        }
+        return visionModulePromise;
+      }
+
       async function ensurePoseLandmarker() {
         if (poseLandmarker) return poseLandmarker;
-        if (!window.vision || !window.vision.FilesetResolver || !window.vision.PoseLandmarker) {
+        const visionModule = await ensureVisionModule().catch(() => {
           throw new Error("mediapipe-script-missing");
-        }
-        const { FilesetResolver, PoseLandmarker } = window.vision;
+        });
+        const { FilesetResolver, PoseLandmarker } = visionModule;
         trackingValue.textContent = "Loading";
         setStatus(
           "Loading pose model...",
@@ -712,7 +722,7 @@
           } else if (error && error.name === "NotReadableError") {
             detail = "Safari sees a camera, but it is busy or unavailable. Close other camera apps or tabs and try again.";
           } else if (error && error.message === "mediapipe-script-missing") {
-            detail = "The MediaPipe library did not finish loading, so the app could not start. Reload the page and wait a moment before tapping again.";
+            detail = "The MediaPipe tracking library could not finish loading. Check your connection, wait a moment, and try again.";
           } else if (error && error.message === "getusermedia-unavailable") {
             detail = "This browser is not exposing camera APIs to the page. Please retry in Safari on iPhone.";
           }
@@ -888,10 +898,29 @@
 
       updateViewport();
       clearPose();
+      startBtn.disabled = true;
+      retryBtn.disabled = true;
       setStatus(
-        "Ready to start.",
-        "If tapping the button seems to do nothing, this panel should now explain exactly which startup step is failing."
+        "Warming up tracking...",
+        "The page is preloading the MediaPipe library now so the camera can start more reliably."
       );
+      ensureVisionModule()
+        .then(() => {
+          startBtn.disabled = false;
+          retryBtn.disabled = false;
+          setStatus(
+            "Ready to start.",
+            "Tracking library loaded. Tap Start Camera to request camera access."
+          );
+        })
+        .catch(() => {
+          startBtn.disabled = false;
+          retryBtn.disabled = false;
+          setStatus(
+            "Tracking library failed to load.",
+            "Your connection may have interrupted the MediaPipe download. Retry after a refresh."
+          );
+        });
     </script>
   </body>
 </html>
