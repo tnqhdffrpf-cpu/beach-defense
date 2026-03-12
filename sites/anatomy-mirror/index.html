@@ -308,9 +308,18 @@
       let revealStrength = 0;
       let smoothedCardPose = null;
       let lastVisionDetectionMs = 0;
+      let referenceProfile = {
+        ready: false,
+        aspect: 1.4,
+        blue: { r: 78, g: 110, b: 182 },
+        tolerance: 96
+      };
+      let referenceLoadPromise = null;
 
       const analysisCanvas = document.createElement("canvas");
       const analysisCtx = analysisCanvas.getContext("2d", { willReadFrequently: true });
+      const referenceCanvas = document.createElement("canvas");
+      const referenceCtx = referenceCanvas.getContext("2d", { willReadFrequently: true });
 
       const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -436,6 +445,77 @@
         message.classList.add("hidden");
       }
 
+      function computeReferenceProfile(image) {
+        referenceCanvas.width = 120;
+        referenceCanvas.height = 180;
+        referenceCtx.clearRect(0, 0, referenceCanvas.width, referenceCanvas.height);
+        referenceCtx.drawImage(image, 0, 0, referenceCanvas.width, referenceCanvas.height);
+
+        const imageData = referenceCtx.getImageData(0, 0, referenceCanvas.width, referenceCanvas.height);
+        const { data } = imageData;
+        let sampleCount = 0;
+        let sumR = 0;
+        let sumG = 0;
+        let sumB = 0;
+        let variance = 0;
+
+        for (let y = 26; y < referenceCanvas.height - 26; y += 1) {
+          for (let x = 22; x < referenceCanvas.width - 22; x += 1) {
+            const index = (y * referenceCanvas.width + x) * 4;
+            const r = data[index];
+            const g = data[index + 1];
+            const b = data[index + 2];
+            if (b <= r || b <= g) continue;
+            sampleCount += 1;
+            sumR += r;
+            sumG += g;
+            sumB += b;
+          }
+        }
+
+        if (!sampleCount) {
+          return referenceProfile;
+        }
+
+        const meanR = sumR / sampleCount;
+        const meanG = sumG / sampleCount;
+        const meanB = sumB / sampleCount;
+
+        for (let y = 26; y < referenceCanvas.height - 26; y += 1) {
+          for (let x = 22; x < referenceCanvas.width - 22; x += 1) {
+            const index = (y * referenceCanvas.width + x) * 4;
+            const r = data[index];
+            const g = data[index + 1];
+            const b = data[index + 2];
+            if (b <= r || b <= g) continue;
+            variance += (r - meanR) ** 2 + (g - meanG) ** 2 + (b - meanB) ** 2;
+          }
+        }
+
+        return {
+          ready: true,
+          aspect: image.naturalHeight / Math.max(image.naturalWidth, 1),
+          blue: { r: meanR, g: meanG, b: meanB },
+          tolerance: Math.max(82, Math.min(132, Math.sqrt(variance / sampleCount) * 2.1))
+        };
+      }
+
+      async function ensureReferenceProfile() {
+        if (referenceProfile.ready) return referenceProfile;
+        if (!referenceLoadPromise) {
+          referenceLoadPromise = new Promise((resolve) => {
+            const image = new Image();
+            image.onload = () => {
+              referenceProfile = computeReferenceProfile(image);
+              resolve(referenceProfile);
+            };
+            image.onerror = () => resolve(referenceProfile);
+            image.src = "./assets/bicyclebackside.jpg";
+          });
+        }
+        return referenceLoadPromise;
+      }
+
       function sceneToNormalized(point) {
         return {
           x: 0.5 - point.x / (camera.right * 2),
@@ -476,7 +556,8 @@
           if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
             throw new Error("getusermedia-unavailable");
           }
-          setStatus("Preparing detector...", "Setting up direct card tracking in the page.");
+          setStatus("Preparing detector...", "Loading the Bicycle card-back reference and setting up direct tracking.");
+          await ensureReferenceProfile();
           if (stream) {
             stream.getTracks().forEach((track) => track.stop());
           }
@@ -532,109 +613,211 @@
         }
         if (sw < 32 || sh < 32) return null;
 
-        analysisCanvas.width = 280;
-        analysisCanvas.height = Math.max(180, Math.round((sh / sw) * 280));
+        analysisCanvas.width = 240;
+        analysisCanvas.height = Math.max(160, Math.round((sh / sw) * 240));
         analysisCtx.drawImage(video, sx, sy, sw, sh, 0, 0, analysisCanvas.width, analysisCanvas.height);
         const imageData = analysisCtx.getImageData(0, 0, analysisCanvas.width, analysisCanvas.height);
         const data = imageData.data;
-        const points = [];
         const width = analysisCanvas.width;
         const height = analysisCanvas.height;
-        let sumX = 0;
-        let sumY = 0;
-        let sampleStride = 2;
+        const mask = new Uint8Array(width * height);
+        const visited = new Uint8Array(width * height);
+        const targetBlue = referenceProfile.blue;
+        const blueTolerance = referenceProfile.tolerance;
 
-        for (let y = 0; y < height; y += sampleStride) {
-          for (let x = 0; x < width; x += sampleStride) {
+        function isCardPixel(index) {
+          const r = data[index];
+          const g = data[index + 1];
+          const b = data[index + 2];
+          const max = Math.max(r, g, b);
+          const min = Math.min(r, g, b);
+          const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+          const chroma = max - min;
+          const white = luma > 164 && chroma < 82;
+          const blueDistance = Math.hypot(r - targetBlue.r, g - targetBlue.g, b - targetBlue.b);
+          const blue = b > g && b > r && blueDistance < blueTolerance;
+          return white || blue;
+        }
+
+        for (let y = 0; y < height; y += 1) {
+          for (let x = 0; x < width; x += 1) {
             const index = (y * width + x) * 4;
-            const r = data[index];
-            const g = data[index + 1];
-            const b = data[index + 2];
-            const max = Math.max(r, g, b);
-            const min = Math.min(r, g, b);
-            const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-            const chroma = max - min;
+            if (isCardPixel(index)) mask[y * width + x] = 1;
+          }
+        }
 
-            if (luma > 170 && chroma < 72) {
-              points.push({ x, y });
-              sumX += x;
-              sumY += y;
+        const queueX = new Int16Array(width * height);
+        const queueY = new Int16Array(width * height);
+        let bestComponent = null;
+
+        for (let y = 1; y < height - 1; y += 1) {
+          for (let x = 1; x < width - 1; x += 1) {
+            const startIndex = y * width + x;
+            if (!mask[startIndex] || visited[startIndex]) continue;
+
+            let head = 0;
+            let tail = 0;
+            let count = 0;
+            let whiteCount = 0;
+            let blueCount = 0;
+            let sumX = 0;
+            let sumY = 0;
+            let minX = x;
+            let maxX = x;
+            let minY = y;
+            let maxY = y;
+            const points = [];
+
+            visited[startIndex] = 1;
+            queueX[tail] = x;
+            queueY[tail] = y;
+            tail += 1;
+
+            while (head < tail) {
+              const px = queueX[head];
+              const py = queueY[head];
+              head += 1;
+              const pixelIndex = (py * width + px) * 4;
+              const r = data[pixelIndex];
+              const g = data[pixelIndex + 1];
+              const b = data[pixelIndex + 2];
+              const max = Math.max(r, g, b);
+              const min = Math.min(r, g, b);
+              const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+              const chroma = max - min;
+
+              count += 1;
+              sumX += px;
+              sumY += py;
+              if (luma > 164 && chroma < 82) whiteCount += 1;
+              else if (b > g && b > r) blueCount += 1;
+              if (px < minX) minX = px;
+              if (px > maxX) maxX = px;
+              if (py < minY) minY = py;
+              if (py > maxY) maxY = py;
+              points.push({ x: px, y: py });
+
+              const neighbors = [
+                [px + 1, py],
+                [px - 1, py],
+                [px, py + 1],
+                [px, py - 1]
+              ];
+              for (const [nx, ny] of neighbors) {
+                if (nx < 1 || ny < 1 || nx >= width - 1 || ny >= height - 1) continue;
+                const neighborIndex = ny * width + nx;
+                if (!mask[neighborIndex] || visited[neighborIndex]) continue;
+                visited[neighborIndex] = 1;
+                queueX[tail] = nx;
+                queueY[tail] = ny;
+                tail += 1;
+              }
+            }
+
+            if (count < width * height * 0.02) continue;
+
+            const meanX = sumX / count;
+            const meanY = sumY / count;
+            let covXX = 0;
+            let covXY = 0;
+            let covYY = 0;
+            for (const point of points) {
+              const dx = point.x - meanX;
+              const dy = point.y - meanY;
+              covXX += dx * dx;
+              covXY += dx * dy;
+              covYY += dy * dy;
+            }
+
+            const angle = 0.5 * Math.atan2(2 * covXY, covXX - covYY);
+            const axisX = Math.cos(angle);
+            const axisY = Math.sin(angle);
+            const perpX = -axisY;
+            const perpY = axisX;
+            let primaryMin = Infinity;
+            let primaryMax = -Infinity;
+            let secondaryMin = Infinity;
+            let secondaryMax = -Infinity;
+
+            for (const point of points) {
+              const dx = point.x - meanX;
+              const dy = point.y - meanY;
+              const primary = dx * axisX + dy * axisY;
+              const secondary = dx * perpX + dy * perpY;
+              if (primary < primaryMin) primaryMin = primary;
+              if (primary > primaryMax) primaryMax = primary;
+              if (secondary < secondaryMin) secondaryMin = secondary;
+              if (secondary > secondaryMax) secondaryMax = secondary;
+            }
+
+            let spanA = primaryMax - primaryMin;
+            let spanB = secondaryMax - secondaryMin;
+            let finalAngle = angle;
+            if (spanA > spanB) {
+              const temp = spanA;
+              spanA = spanB;
+              spanB = temp;
+              finalAngle += Math.PI * 0.5;
+            }
+
+            const aspect = spanB / Math.max(spanA, 0.0001);
+            const fillRatio = count / Math.max((maxX - minX + 1) * (maxY - minY + 1), 1);
+            const whiteRatio = whiteCount / count;
+            const blueRatio = blueCount / count;
+            const aspectScore = Math.max(0, 1 - Math.abs(aspect - 1.45) / 0.42);
+            const colorScore = Math.min(1, whiteRatio / 0.18) * 0.38 + Math.min(1, blueRatio / 0.4) * 0.62;
+            const fillScore = Math.max(0, 1 - Math.abs(fillRatio - 0.68) / 0.34);
+            const centerScore = 1 - Math.min(1, Math.hypot(meanX / width - 0.5, meanY / height - 0.5));
+            const score = count * (0.4 + aspectScore * 0.6) * (0.45 + colorScore * 0.55) * (0.35 + fillScore * 0.65) * (0.55 + centerScore * 0.45);
+
+            if (!bestComponent || score > bestComponent.score) {
+              bestComponent = {
+                score,
+                meanX,
+                meanY,
+                spanA,
+                spanB,
+                angle: finalAngle,
+                whiteRatio,
+                blueRatio
+              };
             }
           }
         }
 
-        if (points.length < 180) {
+        if (!bestComponent) {
           return null;
         }
 
-        const meanX = sumX / points.length;
-        const meanY = sumY / points.length;
-        let covXX = 0;
-        let covXY = 0;
-        let covYY = 0;
-        for (const point of points) {
-          const dx = point.x - meanX;
-          const dy = point.y - meanY;
-          covXX += dx * dx;
-          covXY += dx * dy;
-          covYY += dy * dy;
-        }
-
-        const angle = 0.5 * Math.atan2(2 * covXY, covXX - covYY);
-        const axisX = Math.cos(angle);
-        const axisY = Math.sin(angle);
-        const perpX = -axisY;
-        const perpY = axisX;
-
-        const primary = [];
-        const secondary = [];
-        for (const point of points) {
-          const dx = point.x - meanX;
-          const dy = point.y - meanY;
-          primary.push(dx * axisX + dy * axisY);
-          secondary.push(dx * perpX + dy * perpY);
-        }
-
-        primary.sort((a, b) => a - b);
-        secondary.sort((a, b) => a - b);
-        const lowerIndex = Math.floor(points.length * 0.06);
-        const upperIndex = Math.ceil(points.length * 0.94) - 1;
-        const primaryMin = primary[lowerIndex];
-        const primaryMax = primary[upperIndex];
-        const secondaryMin = secondary[lowerIndex];
-        const secondaryMax = secondary[upperIndex];
-        let spanA = primaryMax - primaryMin;
-        let spanB = secondaryMax - secondaryMin;
-        let finalAngle = angle;
-
-        if (spanA > spanB) {
-          const swappedA = spanB;
-          spanB = spanA;
-          spanA = swappedA;
-          finalAngle += Math.PI * 0.5;
-        }
-
-        const aspect = spanB / Math.max(spanA, 0.0001);
-        if (spanA < 18 || spanB < 36 || aspect < 1.15 || aspect > 1.75) {
+        const aspect = bestComponent.spanB / Math.max(bestComponent.spanA, 0.0001);
+        if (
+          bestComponent.spanA < 14 ||
+          bestComponent.spanB < 34 ||
+          aspect < 1.18 ||
+          aspect > 1.72 ||
+          bestComponent.whiteRatio < 0.06 ||
+          bestComponent.blueRatio < 0.18
+        ) {
           return null;
         }
 
         const centerN = {
-          x: (sx + (meanX / width) * sw) / video.videoWidth,
-          y: (sy + (meanY / height) * sh) / video.videoHeight
+          x: (sx + (bestComponent.meanX / width) * sw) / video.videoWidth,
+          y: (sy + (bestComponent.meanY / height) * sh) / video.videoHeight
         };
-        const widthN = (spanA / width) * (sw / video.videoWidth);
-        const heightN = (spanB / height) * (sh / video.videoHeight);
-        const borderDensity = points.length / ((spanA * spanB) / (sampleStride * sampleStride));
+        const widthN = (bestComponent.spanA / width) * (sw / video.videoWidth);
+        const heightN = (bestComponent.spanB / height) * (sh / video.videoHeight);
         const confidence = THREE.MathUtils.clamp(
-          (1 - Math.abs(aspect - 1.4) / 0.4) * 0.58 + Math.min(borderDensity, 1) * 0.42,
-          0.18,
-          0.96
+          (1 - Math.abs(aspect - 1.45) / 0.35) * 0.42 +
+            Math.min(1, bestComponent.blueRatio / 0.44) * 0.34 +
+            Math.min(1, bestComponent.whiteRatio / 0.2) * 0.24,
+          0.22,
+          0.97
         );
 
         return {
           center: normalizedToScene(centerN.x, centerN.y),
-          angle: finalAngle,
+          angle: bestComponent.angle,
           width: widthN * camera.right * 2,
           height: heightN * 2,
           confidence
@@ -718,9 +901,9 @@
           const cardPose = smoothCardPose(detectedPose);
           updateCardOverlay(cardPose);
           if (cardPose) {
-            setStatus("Card tracked.", "Tap X-Ray to fade in the hidden four of hearts. The overlay is locked to the detected card outline.");
+            setStatus("Card tracked.", "Tap X-Ray to fade in the hidden four of hearts. The tracker is using the Bicycle back color profile to stay on the card.");
           } else {
-            setStatus("Looking for card...", "Show the back of one playing card clearly in frame. A strong white border helps the lock.");
+            setStatus("Looking for Bicycle back...", "Show one blue-backed card clearly in frame with the white border visible.");
           }
         }
 
@@ -782,7 +965,14 @@
       updateViewport();
       xrayBtn.disabled = true;
       resetBtn.disabled = true;
-      setStatus("Ready to start.", "Open the camera, show a card back, then tap X-Ray. This version tracks the card itself, not your hand.");
+      setStatus("Loading card reference...", "Preparing the blue Bicycle back profile for direct card tracking.");
+      ensureReferenceProfile()
+        .then(() => {
+          setStatus("Ready to start.", "Open the camera, show a blue Bicycle-style card back, then tap X-Ray.");
+        })
+        .catch(() => {
+          setStatus("Ready to start.", "Open the camera, show a blue Bicycle-style card back, then tap X-Ray.");
+        });
     </script>
   </body>
 </html>
