@@ -361,12 +361,16 @@
       const statusLine = document.getElementById("statusLine");
       const statusDetail = document.getElementById("statusDetail");
 
-      const CONNECTIONS = [
-        [11, 12], [11, 13], [13, 15], [12, 14], [14, 16],
-        [11, 23], [12, 24], [23, 24], [23, 25], [25, 27],
-        [24, 26], [26, 28]
+      const HAND_CONNECTIONS = [
+        [0, 1], [1, 2], [2, 3], [3, 4],
+        [0, 5], [5, 6], [6, 7], [7, 8],
+        [5, 9], [9, 10], [10, 11], [11, 12],
+        [9, 13], [13, 14], [14, 15], [15, 16],
+        [13, 17], [17, 18], [18, 19], [19, 20],
+        [0, 17]
       ];
-      const IMPORTANT_POINTS = [11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28];
+
+      let handLandmarker;
       let poseLandmarker;
       let stream;
       let rafId = 0;
@@ -386,224 +390,178 @@
       const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, -10, 10);
       camera.position.z = 5;
       scene.add(camera);
+      scene.add(new THREE.AmbientLight(0xffffff, 1.2));
 
-      const ambient = new THREE.AmbientLight(0xffffff, 1.1);
-      scene.add(ambient);
-      const rim = new THREE.PointLight(0x77d8ff, 2.2, 6);
-      rim.position.set(0, 0, 2);
-      scene.add(rim);
+      const xrayGroup = new THREE.Group();
+      scene.add(xrayGroup);
 
-      const anatomyGroup = new THREE.Group();
-      anatomyGroup.renderOrder = 4;
-      scene.add(anatomyGroup);
-
-      const skeletonMaterial = new THREE.LineBasicMaterial({
-        color: 0x9fe6ff,
+      const xrayTexture = buildXrayTexture();
+      const xrayMaterial = new THREE.MeshBasicMaterial({
+        map: xrayTexture,
         transparent: true,
-        opacity: 0.85,
+        opacity: 0.98,
         depthTest: false
       });
-      const skeletonGeometry = new THREE.BufferGeometry();
-      const skeletonArray = new Float32Array(CONNECTIONS.length * 2 * 3);
-      skeletonGeometry.setAttribute("position", new THREE.BufferAttribute(skeletonArray, 3));
-      const skeletonLines = new THREE.LineSegments(skeletonGeometry, skeletonMaterial);
-      skeletonLines.renderOrder = 5;
-      scene.add(skeletonLines);
+      const xrayPlate = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), xrayMaterial);
+      xrayPlate.renderOrder = 6;
+      xrayGroup.add(xrayPlate);
 
-      const pointMaterial = new THREE.MeshBasicMaterial({
-        color: 0xd8f6ff,
-        transparent: true,
-        opacity: 0.9,
-        depthTest: false
-      });
-      const pointGeometry = new THREE.CircleGeometry(0.018, 20);
-      const pointMeshes = new Map();
-      IMPORTANT_POINTS.forEach((index) => {
-        const mesh = new THREE.Mesh(pointGeometry, pointMaterial.clone());
-        mesh.visible = false;
-        mesh.renderOrder = 6;
-        scene.add(mesh);
-        pointMeshes.set(index, mesh);
-      });
-
-      const torsoPanel = new THREE.Group();
-      anatomyGroup.add(torsoPanel);
-
-      const plateTexture = buildPlateTexture();
-      const plateMaterial = new THREE.MeshBasicMaterial({
-        map: plateTexture,
-        transparent: true,
-        opacity: 0.86,
-        depthTest: false
-      });
-      const plate = new THREE.Mesh(new THREE.PlaneGeometry(1, 1.42), plateMaterial);
-      torsoPanel.add(plate);
-
-      const halo = new THREE.Mesh(
-        new THREE.PlaneGeometry(1.18, 1.6),
+      const glowPlate = new THREE.Mesh(
+        new THREE.PlaneGeometry(1.08, 1.08),
         new THREE.MeshBasicMaterial({
-          color: 0x67d7ff,
+          color: 0x8ae7ff,
           transparent: true,
           opacity: 0.12,
           depthTest: false
         })
       );
-      halo.position.z = -0.01;
-      torsoPanel.add(halo);
+      glowPlate.position.z = -0.01;
+      xrayGroup.add(glowPlate);
 
-      const outline = new THREE.LineLoop(
+      const frameOutline = new THREE.LineLoop(
         new THREE.BufferGeometry().setFromPoints([
-          new THREE.Vector3(-0.52, 0.68, 0.01),
-          new THREE.Vector3(0.52, 0.68, 0.01),
-          new THREE.Vector3(0.52, -0.68, 0.01),
-          new THREE.Vector3(-0.52, -0.68, 0.01)
+          new THREE.Vector3(-0.5, 0.5, 0.02),
+          new THREE.Vector3(0.5, 0.5, 0.02),
+          new THREE.Vector3(0.5, -0.5, 0.02),
+          new THREE.Vector3(-0.5, -0.5, 0.02)
         ]),
         new THREE.LineBasicMaterial({
-          color: 0xa5efff,
+          color: 0xe6fbff,
           transparent: true,
           opacity: 0.82,
           depthTest: false
         })
       );
-      torsoPanel.add(outline);
+      xrayGroup.add(frameOutline);
 
-      const sternum = new THREE.Line(
-        new THREE.BufferGeometry().setFromPoints([
-          new THREE.Vector3(0, 0.48, 0.02),
-          new THREE.Vector3(0, -0.48, 0.02)
-        ]),
+      const handLineGeometry = new THREE.BufferGeometry();
+      const handLineArray = new Float32Array(HAND_CONNECTIONS.length * 2 * 2 * 3);
+      handLineGeometry.setAttribute("position", new THREE.BufferAttribute(handLineArray, 3));
+      const handLines = new THREE.LineSegments(
+        handLineGeometry,
         new THREE.LineBasicMaterial({
-          color: 0xe8fbff,
+          color: 0x8ddfff,
           transparent: true,
-          opacity: 0.72,
+          opacity: 0.28,
           depthTest: false
         })
       );
-      torsoPanel.add(sternum);
+      handLines.renderOrder = 4;
+      scene.add(handLines);
 
-      const ribLines = new THREE.Group();
-      torsoPanel.add(ribLines);
-      for (let i = 0; i < 6; i += 1) {
-        const y = 0.4 - i * 0.13;
-        const left = ribCurve(-1, y);
-        const right = ribCurve(1, y);
-        ribLines.add(
-          new THREE.Line(
-            new THREE.BufferGeometry().setFromPoints(left),
-            new THREE.LineBasicMaterial({
-              color: 0xd8f7ff,
-              transparent: true,
-              opacity: 0.52,
-              depthTest: false
-            })
-          )
-        );
-        ribLines.add(
-          new THREE.Line(
-            new THREE.BufferGeometry().setFromPoints(right),
-            new THREE.LineBasicMaterial({
-              color: 0xd8f7ff,
-              transparent: true,
-              opacity: 0.52,
-              depthTest: false
-            })
-          )
-        );
-      }
+      const fingertipMaterial = new THREE.MeshBasicMaterial({
+        color: 0xf2fdff,
+        transparent: true,
+        opacity: 0.9,
+        depthTest: false
+      });
+      const fingertipGeometry = new THREE.CircleGeometry(0.018, 18);
+      const fingertipMarkers = Array.from({ length: 4 }, () => {
+        const marker = new THREE.Mesh(fingertipGeometry, fingertipMaterial.clone());
+        marker.visible = false;
+        marker.renderOrder = 5;
+        scene.add(marker);
+        return marker;
+      });
 
-      const vertebrae = new THREE.Group();
-      torsoPanel.add(vertebrae);
-      for (let i = 0; i < 8; i += 1) {
-        const vertebra = new THREE.Mesh(
-          new THREE.CircleGeometry(0.028 - i * 0.0015, 18),
-          new THREE.MeshBasicMaterial({
-            color: 0xf2fdff,
-            transparent: true,
-            opacity: 0.66,
-            depthTest: false
-          })
-        );
-        vertebra.position.set(0, 0.42 - i * 0.12, 0.02);
-        vertebrae.add(vertebra);
-      }
-
-      const smoothed = new Map();
-      IMPORTANT_POINTS.forEach((index) => smoothed.set(index, new THREE.Vector3()));
-
-      function buildPlateTexture() {
+      function buildXrayTexture() {
         const canvas = document.createElement("canvas");
-        canvas.width = 768;
+        canvas.width = 1024;
         canvas.height = 1024;
         const g = canvas.getContext("2d");
 
         const bg = g.createLinearGradient(0, 0, 0, canvas.height);
-        bg.addColorStop(0, "rgba(165, 232, 255, 0.38)");
-        bg.addColorStop(0.5, "rgba(76, 176, 224, 0.18)");
-        bg.addColorStop(1, "rgba(26, 90, 137, 0.14)");
+        bg.addColorStop(0, "rgba(1, 10, 18, 0.98)");
+        bg.addColorStop(0.5, "rgba(8, 20, 33, 0.96)");
+        bg.addColorStop(1, "rgba(1, 8, 16, 0.98)");
         g.fillStyle = bg;
         g.fillRect(0, 0, canvas.width, canvas.height);
 
-        const glow = g.createRadialGradient(canvas.width * 0.5, canvas.height * 0.38, 0, canvas.width * 0.5, canvas.height * 0.38, canvas.width * 0.42);
-        glow.addColorStop(0, "rgba(233, 250, 255, 0.62)");
-        glow.addColorStop(0.35, "rgba(175, 231, 255, 0.28)");
-        glow.addColorStop(1, "rgba(0, 0, 0, 0)");
-        g.fillStyle = glow;
+        const vignette = g.createRadialGradient(canvas.width * 0.5, canvas.height * 0.5, 80, canvas.width * 0.5, canvas.height * 0.5, 520);
+        vignette.addColorStop(0, "rgba(186, 235, 255, 0.16)");
+        vignette.addColorStop(0.55, "rgba(82, 164, 214, 0.06)");
+        vignette.addColorStop(1, "rgba(0, 0, 0, 0)");
+        g.fillStyle = vignette;
         g.fillRect(0, 0, canvas.width, canvas.height);
 
-        g.strokeStyle = "rgba(233, 250, 255, 0.78)";
+        g.strokeStyle = "rgba(236, 250, 255, 0.96)";
+        g.lineCap = "round";
+        g.lineJoin = "round";
+        g.shadowColor = "rgba(208, 244, 255, 0.65)";
+        g.shadowBlur = 18;
+
+        g.lineWidth = 18;
+        g.beginPath();
+        g.moveTo(512, 180);
+        g.lineTo(512, 840);
+        g.stroke();
+
+        g.lineWidth = 8;
+        for (let i = 0; i < 9; i += 1) {
+          const y = 220 + i * 66;
+          g.beginPath();
+          g.ellipse(512, y, 28 - i * 1.3, 18 - i * 0.7, 0, 0, Math.PI * 2);
+          g.stroke();
+        }
+
+        g.lineWidth = 12;
+        for (let i = 0; i < 7; i += 1) {
+          const y = 280 + i * 70;
+          drawRib(g, 512, y, -1);
+          drawRib(g, 512, y, 1);
+        }
+
+        g.lineWidth = 15;
+        g.beginPath();
+        g.moveTo(512, 220);
+        g.lineTo(512, 540);
+        g.stroke();
+
+        g.lineWidth = 14;
+        g.beginPath();
+        g.moveTo(420, 220);
+        g.lineTo(600, 220);
+        g.stroke();
+
         g.lineWidth = 10;
         g.beginPath();
-        g.moveTo(canvas.width * 0.5, 140);
-        g.lineTo(canvas.width * 0.5, 840);
+        g.moveTo(470, 560);
+        g.lineTo(438, 800);
+        g.moveTo(554, 560);
+        g.lineTo(586, 800);
         g.stroke();
 
         g.lineWidth = 6;
-        for (let i = 0; i < 6; i += 1) {
-          const y = 240 + i * 88;
-          drawCanvasRib(g, canvas.width * 0.5, y, -1);
-          drawCanvasRib(g, canvas.width * 0.5, y, 1);
-        }
+        g.strokeStyle = "rgba(205, 243, 255, 0.55)";
+        g.strokeRect(24, 24, canvas.width - 48, canvas.height - 48);
 
-        g.fillStyle = "rgba(245, 253, 255, 0.82)";
-        for (let i = 0; i < 8; i += 1) {
-          const y = 200 + i * 76;
-          g.beginPath();
-          g.ellipse(canvas.width * 0.5, y, 16, 11, 0, 0, Math.PI * 2);
-          g.fill();
+        const noise = g.createImageData(canvas.width, canvas.height);
+        for (let i = 0; i < noise.data.length; i += 4) {
+          const value = Math.random() * 18;
+          noise.data[i] = value;
+          noise.data[i + 1] = value;
+          noise.data[i + 2] = value + 6;
+          noise.data[i + 3] = 12;
         }
-
-        g.strokeStyle = "rgba(173, 238, 255, 0.4)";
-        g.lineWidth = 5;
-        g.strokeRect(18, 18, canvas.width - 36, canvas.height - 36);
+        g.putImageData(noise, 0, 0);
 
         const texture = new THREE.CanvasTexture(canvas);
         texture.needsUpdate = true;
         return texture;
       }
 
-      function drawCanvasRib(g, centerX, centerY, direction) {
+      function drawRib(g, cx, cy, direction) {
         g.beginPath();
-        g.moveTo(centerX, centerY);
+        g.moveTo(cx, cy);
         g.bezierCurveTo(
-          centerX + 52 * direction,
-          centerY - 22,
-          centerX + 130 * direction,
-          centerY - 12,
-          centerX + 176 * direction,
-          centerY + 22
+          cx + 65 * direction,
+          cy - 26,
+          cx + 180 * direction,
+          cy - 18,
+          cx + 250 * direction,
+          cy + 35
         );
         g.stroke();
-      }
-
-      function ribCurve(direction, y) {
-        const points = [];
-        for (let i = 0; i <= 20; i += 1) {
-          const t = i / 20;
-          const x = THREE.MathUtils.lerp(0.02, 0.38, t) * direction;
-          const curveY = y + Math.sin(t * Math.PI) * 0.04 - t * 0.02;
-          points.push(new THREE.Vector3(x, curveY, 0.02));
-        }
-        return points;
       }
 
       function setStatus(line, detail = "") {
@@ -624,7 +582,7 @@
         if (!visionModulePromise) {
           setStatus(
             "Loading tracking library...",
-            "Downloading the MediaPipe runtime in the background so the camera button is ready."
+            "Downloading the MediaPipe runtime for hand framing and body pose tracking."
           );
           visionModulePromise = import(
             "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.32/vision_bundle.mjs"
@@ -633,24 +591,27 @@
         return visionModulePromise;
       }
 
-      async function ensurePoseLandmarker() {
-        if (poseLandmarker) return poseLandmarker;
+      async function ensureLandmarkers() {
+        if (handLandmarker && poseLandmarker) return;
         const visionModule = await ensureVisionModule().catch(() => {
           throw new Error("mediapipe-script-missing");
         });
-        const { FilesetResolver, PoseLandmarker } = visionModule;
-        trackingValue.textContent = "Loading";
-        setStatus(
-          "Loading pose model...",
-          "Downloading MediaPipe runtime and pose model. On iPhone this first load can take several seconds."
-        );
+        const { FilesetResolver, HandLandmarker, PoseLandmarker } = visionModule;
+        setStatus("Loading models...", "Preparing hand tracking and pose tracking together.");
         const vision = await FilesetResolver.forVisionTasks(
           "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.32/wasm"
         );
-        setStatus(
-          "Preparing pose tracker...",
-          "MediaPipe runtime loaded. Creating the live pose detector now."
-        );
+        handLandmarker = await HandLandmarker.createFromOptions(vision, {
+          baseOptions: {
+            modelAssetPath:
+              "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task"
+          },
+          runningMode: "VIDEO",
+          numHands: 2,
+          minHandDetectionConfidence: 0.55,
+          minHandPresenceConfidence: 0.55,
+          minTrackingConfidence: 0.55
+        });
         poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
           baseOptions: {
             modelAssetPath:
@@ -658,18 +619,14 @@
           },
           runningMode: "VIDEO",
           numPoses: 1,
-          minPoseDetectionConfidence: 0.55,
-          minPosePresenceConfidence: 0.55,
-          minTrackingConfidence: 0.55
+          minPoseDetectionConfidence: 0.5,
+          minPosePresenceConfidence: 0.5,
+          minTrackingConfidence: 0.5
         });
-        return poseLandmarker;
       }
 
       async function startCamera() {
-        if (startInFlight) {
-          setStatus("Still working...", "The app is already trying to load the model or request the camera.");
-          return;
-        }
+        if (startInFlight) return;
         hideMessage();
         startInFlight = true;
         trackingValue.textContent = "Starting";
@@ -679,19 +636,12 @@
           if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
             throw new Error("getusermedia-unavailable");
           }
-
-          setStatus(
-            "Checking browser support...",
-            "Safari should support camera access here. If this hangs, we likely have a permission or script-loading issue."
-          );
-          await ensurePoseLandmarker();
+          setStatus("Warming up tracking...", "Loading hand frame detection and x-ray rendering.");
+          await ensureLandmarkers();
           if (stream) {
             stream.getTracks().forEach((track) => track.stop());
           }
-          setStatus(
-            "Requesting camera permission...",
-            "Safari should show a camera permission sheet. If you do not see one, check site permissions and screen time restrictions."
-          );
+          setStatus("Requesting camera permission...", "Safari should prompt for the front camera.");
           stream = await navigator.mediaDevices.getUserMedia({
             audio: false,
             video: {
@@ -700,32 +650,19 @@
               height: { ideal: 720 }
             }
           });
-          setStatus(
-            "Starting video...",
-            "Camera access was granted. Waiting for the front camera stream to begin."
-          );
           video.srcObject = stream;
           await video.play();
           appStarted = true;
-          setStatus(
-            "Camera live.",
-            "Point the phone at your upper body. The overlay will appear once shoulders and torso are detected."
-          );
           overlay.classList.add("hidden");
+          setStatus("Camera live.", "Make a square with both thumbs and index fingers to reveal the x-ray window.");
           renderFrame();
         } catch (error) {
           trackingValue.textContent = "Blocked";
-          const fallback = "The camera or pose model could not start on this device. Refresh the page and try again in Safari over HTTPS.";
-          let detail = fallback;
-          if (error && error.name === "NotAllowedError") {
-            detail = "Camera permission was denied. Open Safari site settings for this page and allow the camera, then try again.";
-          } else if (error && error.name === "NotReadableError") {
-            detail = "Safari sees a camera, but it is busy or unavailable. Close other camera apps or tabs and try again.";
-          } else if (error && error.message === "mediapipe-script-missing") {
-            detail = "The MediaPipe tracking library could not finish loading. Check your connection, wait a moment, and try again.";
-          } else if (error && error.message === "getusermedia-unavailable") {
-            detail = "This browser is not exposing camera APIs to the page. Please retry in Safari on iPhone.";
-          }
+          let detail = "The camera or tracking models could not start on this device.";
+          if (error && error.name === "NotAllowedError") detail = "Camera permission was denied. Allow camera access in Safari settings and try again.";
+          else if (error && error.name === "NotReadableError") detail = "The camera appears busy or unavailable. Close other camera apps or tabs and try again.";
+          else if (error && error.message === "mediapipe-script-missing") detail = "The MediaPipe tracking library could not finish loading. Check your connection, wait a moment, and retry.";
+          else if (error && error.message === "getusermedia-unavailable") detail = "This browser is not exposing camera APIs to the page. Please retry in Safari on iPhone.";
           setStatus("Startup failed.", detail);
           setMessage(detail);
           console.error(error);
@@ -736,119 +673,115 @@
         }
       }
 
-      function toScreenPoint(landmark) {
+      function toScenePoint(landmark) {
         return new THREE.Vector3((0.5 - landmark.x) * camera.right * 2, (0.5 - landmark.y) * 2, 0);
       }
 
-      function confidenceFor(landmarks) {
-        const scores = [11, 12, 23, 24]
-          .map((index) => landmarks[index]?.visibility ?? 0)
-          .filter((value) => Number.isFinite(value));
-        if (!scores.length) return 0;
-        return scores.reduce((sum, value) => sum + value, 0) / scores.length;
+      function drawHandLines(hands) {
+        let pointer = 0;
+        hands.forEach((hand) => {
+          HAND_CONNECTIONS.forEach(([aIndex, bIndex]) => {
+            const a = toScenePoint(hand[aIndex]);
+            const b = toScenePoint(hand[bIndex]);
+            handLineArray[pointer++] = a.x;
+            handLineArray[pointer++] = a.y;
+            handLineArray[pointer++] = 0;
+            handLineArray[pointer++] = b.x;
+            handLineArray[pointer++] = b.y;
+            handLineArray[pointer++] = 0;
+          });
+        });
+        while (pointer < handLineArray.length) {
+          handLineArray[pointer++] = 0;
+        }
+        handLineGeometry.attributes.position.needsUpdate = true;
       }
 
-      function updateSkeleton(landmarks) {
-        IMPORTANT_POINTS.forEach((index) => {
-          const current = toScreenPoint(landmarks[index]);
-          smoothed.get(index).lerp(current, 0.38);
+      function extractFramePoints(hands) {
+        if (hands.length < 2) return null;
+        const points = [];
+        hands.slice(0, 2).forEach((hand) => {
+          points.push(toScenePoint(hand[4]));
+          points.push(toScenePoint(hand[8]));
         });
+        return points;
+      }
 
-        CONNECTIONS.forEach((pair, connectionIndex) => {
-          const a = smoothed.get(pair[0]);
-          const b = smoothed.get(pair[1]);
-          const offset = connectionIndex * 6;
-          skeletonArray[offset] = a.x;
-          skeletonArray[offset + 1] = a.y;
-          skeletonArray[offset + 2] = 0;
-          skeletonArray[offset + 3] = b.x;
-          skeletonArray[offset + 4] = b.y;
-          skeletonArray[offset + 5] = 0;
-        });
-        skeletonGeometry.attributes.position.needsUpdate = true;
-
-        IMPORTANT_POINTS.forEach((index) => {
-          const mesh = pointMeshes.get(index);
-          const point = smoothed.get(index);
-          mesh.position.copy(point);
-          mesh.visible = true;
+      function updateMarkers(points) {
+        fingertipMarkers.forEach((marker, index) => {
+          const point = points[index];
+          marker.visible = Boolean(point);
+          if (point) marker.position.copy(point);
         });
       }
 
-      function updateTorsoPanel(landmarks, confidence) {
-        const leftShoulder = smoothed.get(11);
-        const rightShoulder = smoothed.get(12);
-        const leftHip = smoothed.get(23);
-        const rightHip = smoothed.get(24);
-
-        const shoulderMid = leftShoulder.clone().add(rightShoulder).multiplyScalar(0.5);
-        const hipMid = leftHip.clone().add(rightHip).multiplyScalar(0.5);
-        const torsoCenter = shoulderMid.clone().lerp(hipMid, 0.52);
-        const torsoVector = shoulderMid.clone().sub(hipMid);
-        const shoulderWidth = leftShoulder.distanceTo(rightShoulder);
-        const torsoHeight = shoulderMid.distanceTo(hipMid);
-        const angle = Math.atan2(torsoVector.y, torsoVector.x) - Math.PI / 2;
-
-        torsoPanel.visible = confidence > 0.45;
-        anatomyGroup.visible = confidence > 0.45;
-        skeletonLines.visible = confidence > 0.35;
-
-        torsoPanel.position.copy(torsoCenter);
-        torsoPanel.rotation.z = angle;
-        torsoPanel.scale.set(
-          THREE.MathUtils.clamp(shoulderWidth * 1.2, 0.28, 1.24),
-          THREE.MathUtils.clamp(torsoHeight * 1.95, 0.42, 1.7),
-          1
-        );
-
-        const pulse = 0.8 + Math.sin(performance.now() * 0.005) * 0.08;
-        halo.material.opacity = 0.1 + confidence * 0.12 * pulse;
-        plate.material.opacity = 0.44 + confidence * 0.42;
-        ribLines.children.forEach((line, index) => {
-          line.material.opacity = 0.24 + confidence * 0.38 + Math.sin(performance.now() * 0.003 + index * 0.25) * 0.04;
-        });
-        vertebrae.children.forEach((dot, index) => {
-          dot.material.opacity = 0.34 + confidence * 0.26 + Math.sin(performance.now() * 0.004 + index * 0.33) * 0.05;
-        });
-
-        const torsoAngle = Math.round(THREE.MathUtils.radToDeg(-angle));
-        angleValue.textContent = `${torsoAngle} deg`;
+      function poseConfidence(landmarks) {
+        const ids = [11, 12, 23, 24];
+        const values = ids.map((index) => landmarks[index]?.visibility ?? 0);
+        return values.reduce((sum, value) => sum + value, 0) / values.length;
       }
 
-      function clearPose() {
-        anatomyGroup.visible = false;
-        skeletonLines.visible = false;
-        pointMeshes.forEach((mesh) => {
-          mesh.visible = false;
-        });
-        confidenceValue.textContent = "0%";
-        angleValue.textContent = "0 deg";
+      function updateXrayWindow(framePoints, poseLandmarks) {
+        if (!framePoints) {
+          xrayGroup.visible = false;
+          fingertipMarkers.forEach((marker) => {
+            marker.visible = false;
+          });
+          trackingValue.textContent = "Search";
+          confidenceValue.textContent = "0%";
+          angleValue.textContent = "0 deg";
+          return;
+        }
+
+        updateMarkers(framePoints);
+        xrayGroup.visible = true;
+
+        const center = framePoints.reduce((sum, point) => sum.add(point), new THREE.Vector3()).multiplyScalar(0.25);
+        const width = framePoints[0].distanceTo(framePoints[1]) + framePoints[2].distanceTo(framePoints[3]);
+        const height = framePoints[0].distanceTo(framePoints[3]) + framePoints[1].distanceTo(framePoints[2]);
+        const diagonal = Math.max(0.34, (width + height) * 0.35);
+        const topMid = framePoints[0].clone().add(framePoints[1]).multiplyScalar(0.5);
+        const bottomMid = framePoints[2].clone().add(framePoints[3]).multiplyScalar(0.5);
+        const angle = Math.atan2(topMid.y - bottomMid.y, topMid.x - bottomMid.x) - Math.PI / 2;
+
+        xrayGroup.position.copy(center);
+        xrayGroup.rotation.z = angle;
+        xrayGroup.scale.set(diagonal, diagonal, 1);
+
+        let poseFactor = 0.55;
+        let tilt = 0;
+        if (poseLandmarks) {
+          const shoulders = toScenePoint(poseLandmarks[11]).add(toScenePoint(poseLandmarks[12])).multiplyScalar(0.5);
+          const hips = toScenePoint(poseLandmarks[23]).add(toScenePoint(poseLandmarks[24])).multiplyScalar(0.5);
+          poseFactor = THREE.MathUtils.clamp(poseConfidence(poseLandmarks), 0.2, 1);
+          tilt = Math.atan2(shoulders.y - hips.y, shoulders.x - hips.x) - Math.PI / 2;
+        }
+
+        xrayPlate.material.opacity = 0.8 + poseFactor * 0.18;
+        glowPlate.material.opacity = 0.06 + poseFactor * 0.1;
+        xrayPlate.rotation.z = tilt * 0.18;
+        glowPlate.rotation.z = tilt * 0.18;
+        confidenceValue.textContent = `${Math.round(poseFactor * 100)}%`;
+        angleValue.textContent = `${Math.round(THREE.MathUtils.radToDeg(-angle))} deg`;
+        trackingValue.textContent = "Framed";
       }
 
       function renderFrame() {
         if (!appStarted) return;
-        if (video.readyState >= 2 && poseLandmarker) {
-          if (video.currentTime !== lastVideoTime) {
-            lastVideoTime = video.currentTime;
-            const result = poseLandmarker.detectForVideo(video, performance.now());
-            const landmarks = result.landmarks?.[0];
-            if (landmarks) {
-              const confidence = confidenceFor(landmarks);
-              const trackingReady = confidence > 0.45;
-              trackingValue.textContent = trackingReady ? "Locked" : "Searching";
-              confidenceValue.textContent = `${Math.round(confidence * 100)}%`;
-              if (trackingReady) {
-                setStatus("Tracking locked.", "Pose landmarks are active. Move closer or improve lighting if the overlay flickers.");
-              } else {
-                setStatus("Looking for torso...", "The camera is live, but your shoulders and torso are not confident enough yet.");
-              }
-              updateSkeleton(landmarks);
-              updateTorsoPanel(landmarks, confidence);
-            } else {
-              trackingValue.textContent = "Searching";
-              setStatus("Camera live, waiting for pose...", "Step back slightly and keep both shoulders visible in the frame.");
-              clearPose();
-            }
+        if (video.readyState >= 2 && handLandmarker && poseLandmarker && video.currentTime !== lastVideoTime) {
+          lastVideoTime = video.currentTime;
+          const now = performance.now();
+          const handResult = handLandmarker.detectForVideo(video, now);
+          const poseResult = poseLandmarker.detectForVideo(video, now);
+          const hands = handResult.landmarks || [];
+          const framePoints = extractFramePoints(hands);
+          drawHandLines(hands);
+          updateXrayWindow(framePoints, poseResult.landmarks?.[0]);
+
+          if (framePoints) {
+            setStatus("Frame detected.", "Move the thumb-and-index square around to carry the x-ray window.");
+          } else {
+            setStatus("Make the hand frame.", "Hold both thumbs and index fingers up to form a square window.");
           }
         }
 
@@ -875,7 +808,6 @@
           stream = null;
         }
         appStarted = false;
-        setStatus("Camera stopped.", "Tap Start Camera to begin again.");
       }
 
       startBtn.addEventListener("click", startCamera);
@@ -883,9 +815,7 @@
       messageBtn.addEventListener("click", startCamera);
       overlayCard.addEventListener("click", (event) => {
         if (event.target.closest("button")) return;
-        if (!appStarted && !startInFlight) {
-          startCamera();
-        }
+        if (!appStarted && !startInFlight) startCamera();
       });
       window.addEventListener("resize", updateViewport);
       window.addEventListener("orientationchange", () => setTimeout(updateViewport, 180));
@@ -897,12 +827,11 @@
       });
 
       updateViewport();
-      clearPose();
-      startBtn.disabled = true;
-      retryBtn.disabled = true;
+      xrayGroup.visible = false;
+      handLines.visible = true;
       setStatus(
         "Warming up tracking...",
-        "The page is preloading the MediaPipe library now so the camera can start more reliably."
+        "The page is preloading hand and pose tracking so the camera can start more reliably."
       );
       ensureVisionModule()
         .then(() => {
@@ -910,7 +839,7 @@
           retryBtn.disabled = false;
           setStatus(
             "Ready to start.",
-            "Tracking library loaded. Tap Start Camera to request camera access."
+            "Tap Start Camera, then make a square with both thumbs and index fingers."
           );
         })
         .catch(() => {
