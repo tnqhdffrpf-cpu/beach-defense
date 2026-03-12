@@ -6,7 +6,7 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no"
     />
-    <title>Card X-Ray</title>
+    <title>Card Change</title>
     <style>
       :root {
         --panel: rgba(7, 12, 22, 0.76);
@@ -240,21 +240,21 @@
       </div>
 
       <div id="controls">
-        <button id="xrayBtn" type="button" disabled>X-Ray</button>
-        <button id="resetBtn" class="secondary" type="button" disabled>Hide</button>
+        <button id="xrayBtn" type="button" disabled>Change Card</button>
+        <button id="resetBtn" class="secondary" type="button" disabled>Reset</button>
       </div>
 
       <div id="overlay">
         <div class="card">
-          <h1>Card X-Ray</h1>
+          <h1>Card Change</h1>
           <p class="lede">
-            Hold the back of a playing card in frame. This trick app uses MindAR image tracking and fades in a transparent reveal showing a hidden four of hearts through the back.
+            Hold an ace of clubs in frame. This trick app uses MindAR image tracking and makes the card appear to change into the four of hearts on camera.
           </p>
           <p>
-            On first load, the app compiles a Bicycle card-back target from the bundled reference image. After that, the tracker locks to that image target instead of guessing from hand pose or a loose rectangle.
+            On first load, the app compiles ace-of-clubs image targets from bundled reference art. After that, the tracker locks to that face instead of guessing from a loose rectangle.
           </p>
           <p>
-            Best results come from the front camera, a single blue Bicycle-style card back, and steady lighting with the full card visible.
+            Best results come from the front camera, a single ace of clubs, and steady lighting with the full card visible.
           </p>
           <div style="display:flex; gap:12px; margin-top:18px; flex-wrap:wrap;">
             <button id="startBtn" type="button">Start Camera</button>
@@ -263,7 +263,7 @@
           <div class="status-box" aria-live="polite">
             <p class="status-title">Status</p>
             <p id="statusLine" class="status-line">Ready to start.</p>
-            <p id="statusDetail" class="status-detail">The camera opens first, then the X-Ray button fades in the reveal once the card is tracked.</p>
+            <p id="statusDetail" class="status-detail">The camera opens first, then the Change Card button swaps the ace of clubs into the four of hearts once the card is tracked.</p>
           </div>
         </div>
       </div>
@@ -301,8 +301,8 @@
 
       const TARGET_CACHE_DB = "card-xray-cache";
       const TARGET_CACHE_STORE = "targets";
-      const TARGET_CACHE_KEY = "bicycle-back-v5-front-mirrored";
-      const TARGET_IMAGE_PATH = "./assets/bicyclebackside.jpg";
+      const TARGET_CACHE_KEY = "ace-clubs-v1-front-mirrored";
+      const TARGET_IMAGE_PATH = "./assets/ace-of-clubs.svg";
       const TARGET_CARD_ASPECT = 1.4;
       const TARGET_IMAGE_WIDTH = 1000;
       const TARGET_IMAGE_HEIGHT = Math.round(TARGET_IMAGE_WIDTH * TARGET_CARD_ASPECT);
@@ -443,21 +443,21 @@
             }
             const cached = await getCachedTargetBuffer();
             if (cached) {
-              setStatus("Tracker ready.", "Using the cached MindAR Bicycle target. You can start the camera now.");
+              setStatus("Tracker ready.", "Using the cached MindAR ace-of-clubs targets. You can start the camera now.");
               return cached;
             }
-            setStatus("Compiling card target...", "First run only. Building a MindAR image target from the Bicycle back reference.");
+            setStatus("Compiling card targets...", "First run only. Building MindAR image targets from the ace-of-clubs reference.");
             const normalImage = await buildPreparedTargetSource(false);
             const mirroredImage = await buildPreparedTargetSource(true);
             const compiler = new window.MINDAR.IMAGE.Compiler();
             await compiler.compileImageTargets([normalImage, mirroredImage], (progress) => {
               const percent = Math.max(1, Math.min(100, Math.round(progress)));
-              setStatus("Compiling card targets... " + percent + "%", "Building normal and mirrored Bicycle targets for the front camera.");
+              setStatus("Compiling card targets... " + percent + "%", "Building normal and mirrored ace-of-clubs targets for the front camera.");
             });
             const exported = compiler.exportData();
             const buffer = exported instanceof Uint8Array ? exported.buffer.slice(exported.byteOffset, exported.byteOffset + exported.byteLength) : exported;
             await storeTargetBuffer(buffer);
-            setStatus("Tracker ready.", "The MindAR Bicycle targets were compiled and cached. You can start the camera now.");
+            setStatus("Tracker ready.", "The MindAR ace-of-clubs targets were compiled and cached. You can start the camera now.");
             return buffer;
           })();
         }
@@ -524,7 +524,7 @@
       function renderFrame() {
         revealStrength += (revealTarget - revealStrength) * 0.1;
         if (revealPlaneEl) {
-          revealPlaneEl.setAttribute("material", "opacity", (revealStrength * 0.68).toFixed(3));
+          revealPlaneEl.setAttribute("material", "opacity", (revealStrength * 0.985).toFixed(3));
         }
         revealValue.textContent = revealStrength > 0.05 ? "On" : "Off";
         renderTimer = requestAnimationFrame(renderFrame);
@@ -621,14 +621,14 @@
             revealPlaneEl = revealPlane;
             trackingValue.textContent = "Locked";
             confidenceValue.textContent = "100%";
-            setStatus("Card tracked.", "MindAR locked onto the Bicycle back. Tap X-Ray to fade in the four of hearts.");
+            setStatus("Card tracked.", "MindAR locked onto the ace of clubs. Tap Change Card to swap it into the four of hearts.");
           });
           target.addEventListener("targetLost", () => {
             visibleTargets = Math.max(0, visibleTargets - 1);
             if (visibleTargets === 0) {
               trackingValue.textContent = "Searching";
               confidenceValue.textContent = "0%";
-              setStatus("Tracking lost.", "Show the full blue Bicycle back again so MindAR can reacquire it.");
+              setStatus("Tracking lost.", "Show the full ace of clubs again so MindAR can reacquire it.");
             }
           });
           return target;
@@ -648,7 +648,7 @@
           resetBtn.disabled = false;
           trackingValue.textContent = "Searching";
           confidenceValue.textContent = "0%";
-          setStatus("Camera live.", "Show the full blue Bicycle back to the front camera. MindAR will lock when the image target is recognized.");
+          setStatus("Camera live.", "Show the full ace of clubs to the front camera. MindAR will lock when the image target is recognized.");
           stopRenderLoop();
           renderFrame();
         });
@@ -675,7 +675,7 @@
           if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
             throw new Error("getusermedia-unavailable");
           }
-          setStatus("Preparing MindAR target...", "Loading the cached Bicycle target or compiling it if this is the first run.");
+          setStatus("Preparing MindAR target...", "Loading the cached ace-of-clubs targets or compiling them if this is the first run.");
           const imageTargetSrc = await ensureTargetUrl();
           setStatus("Starting scene...", "Building the camera scene for the front camera.");
           destroyScene();
@@ -684,7 +684,7 @@
           let detail = "The camera or MindAR tracker could not start.";
           if (error && error.name === "NotAllowedError") detail = "Camera permission was denied. Allow camera access in Safari settings and try again.";
           else if (error && error.name === "NotReadableError") detail = "The camera appears busy or unavailable. Close other camera apps or tabs and try again.";
-          else if (error && error.message === "reference-image-failed") detail = "The bundled Bicycle card image could not be loaded, so the target could not be prepared.";
+          else if (error && error.message === "reference-image-failed") detail = "The bundled ace-of-clubs image could not be loaded, so the target could not be prepared.";
           else if (error && error.message === "getusermedia-unavailable") detail = "This browser is not exposing camera APIs to the page. Please retry in Safari on iPhone.";
           else if (error && error.message === "mindar-global-missing") detail = "The MindAR scripts did not load correctly on this device yet. Reload once and try again.";
           setStatus("Startup failed.", detail);
@@ -727,11 +727,11 @@
       });
       xrayBtn.addEventListener("click", () => {
         revealTarget = 1;
-        setStatus("X-Ray active.", "The four of hearts is fading onto the tracked Bicycle card back.");
+        setStatus("Card changed.", "The tracked ace of clubs is being visually swapped into the four of hearts.");
       });
       resetBtn.addEventListener("click", () => {
         revealTarget = 0;
-        setStatus("Reveal hidden.", "Tap X-Ray again to fade the card secret back in.");
+        setStatus("Card reset.", "Tap Change Card again to swap the four of hearts back onto the tracked ace of clubs.");
       });
       window.addEventListener("pagehide", destroyScene);
       window.addEventListener("error", (event) => {
@@ -744,12 +744,12 @@
       resetBtn.disabled = true;
       startBtn.disabled = true;
       retryBtn.disabled = true;
-      setStatus("Preparing MindAR...", "Loading the Bicycle card reference and building the image target cache for this device.");
+      setStatus("Preparing MindAR...", "Loading the ace-of-clubs reference and building the image target cache for this device.");
       ensureTargetBuffer()
         .then(() => {
           startBtn.disabled = false;
           retryBtn.disabled = false;
-          setStatus("Ready to start.", "Use the front camera and show the full blue Bicycle back. MindAR will track that image target, then X-Ray will fade in the four of hearts.");
+          setStatus("Ready to start.", "Use the front camera and show the full ace of clubs. MindAR will track that image target, then Change Card will swap it into the four of hearts.");
         })
         .catch((error) => {
           console.error(error);
