@@ -492,20 +492,26 @@
         return visionModulePromise;
       }
 
-      textureLoader.load(
-        "./assets/chest-xray.png",
-        (texture) => {
-          texture.colorSpace = THREE.SRGBColorSpace;
-          texture.minFilter = THREE.LinearFilter;
-          texture.magFilter = THREE.LinearFilter;
-          xrayMaterial.map = texture;
-          xrayMaterial.needsUpdate = true;
-        },
-        undefined,
-        () => {
+      function applyXrayTexture(texture) {
+        texture.colorSpace = THREE.SRGBColorSpace;
+        texture.minFilter = THREE.LinearFilter;
+        texture.magFilter = THREE.LinearFilter;
+        xrayMaterial.map = texture;
+        xrayMaterial.needsUpdate = true;
+      }
+
+      function loadXrayTexture(urls, index = 0) {
+        if (index >= urls.length) {
           setStatus("X-ray image failed to load.", "The live frame still works, but the embedded medical image could not be loaded.");
+          return;
         }
-      );
+        textureLoader.load(urls[index], applyXrayTexture, undefined, () => loadXrayTexture(urls, index + 1));
+      }
+
+      loadXrayTexture([
+        "./assets/chest-xray.png",
+        "https://upload.wikimedia.org/wikipedia/commons/c/c8/Chest_Xray_PA_3-8-2010.png"
+      ]);
 
       async function ensureLandmarkers() {
         if (handLandmarker && poseLandmarker) return;
