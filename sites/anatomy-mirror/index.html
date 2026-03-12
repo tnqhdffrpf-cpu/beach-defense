@@ -350,11 +350,10 @@
     <script type="module">
       import * as THREE from "https://unpkg.com/three@0.180.0/build/three.module.js";
 
-      const { FilesetResolver, PoseLandmarker } = window.vision;
-
       const video = document.getElementById("video");
       const sceneHost = document.getElementById("scene");
       const overlay = document.getElementById("overlay");
+      const overlayCard = overlay.querySelector(".card");
       const message = document.getElementById("message");
       const messageText = document.getElementById("messageText");
       const messageBtn = document.getElementById("messageBtn");
@@ -629,6 +628,7 @@
         if (!window.vision || !window.vision.FilesetResolver || !window.vision.PoseLandmarker) {
           throw new Error("mediapipe-script-missing");
         }
+        const { FilesetResolver, PoseLandmarker } = window.vision;
         trackingValue.textContent = "Loading";
         setStatus(
           "Loading pose model...",
@@ -871,6 +871,12 @@
       startBtn.addEventListener("click", startCamera);
       retryBtn.addEventListener("click", startCamera);
       messageBtn.addEventListener("click", startCamera);
+      overlayCard.addEventListener("click", (event) => {
+        if (event.target.closest("button")) return;
+        if (!appStarted && !startInFlight) {
+          startCamera();
+        }
+      });
       window.addEventListener("resize", updateViewport);
       window.addEventListener("orientationchange", () => setTimeout(updateViewport, 180));
       window.addEventListener("pagehide", stopCamera);
