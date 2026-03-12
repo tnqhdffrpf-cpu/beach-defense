@@ -301,7 +301,7 @@
 
       const TARGET_CACHE_DB = "card-xray-cache";
       const TARGET_CACHE_STORE = "targets";
-      const TARGET_CACHE_KEY = "bicycle-back-v4-front";
+      const TARGET_CACHE_KEY = "bicycle-back-v5-front-mirrored";
       const TARGET_IMAGE_PATH = "./assets/bicyclebackside.jpg";
       const TARGET_CARD_ASPECT = 1.4;
       const TARGET_IMAGE_WIDTH = 1000;
@@ -347,7 +347,7 @@
         });
       }
 
-      async function buildPreparedTargetSource() {
+      async function buildPreparedTargetSource(mirrored) {
         const image = await loadReferenceImage();
         const canvas = document.createElement("canvas");
         canvas.width = TARGET_IMAGE_WIDTH;
@@ -369,7 +369,15 @@
           sx = Math.max(0, Math.round((image.naturalWidth - sw) * 0.5));
         }
 
-        ctx.drawImage(image, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+        if (mirrored) {
+          ctx.save();
+          ctx.translate(canvas.width, 0);
+          ctx.scale(-1, 1);
+          ctx.drawImage(image, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+          ctx.restore();
+        } else {
+          ctx.drawImage(image, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+        }
 
         const frameInset = Math.round(canvas.width * 0.035);
         ctx.strokeStyle = "rgba(255,255,255,0.92)";
@@ -439,16 +447,17 @@
               return cached;
             }
             setStatus("Compiling card target...", "First run only. Building a MindAR image target from the Bicycle back reference.");
-            const image = await buildPreparedTargetSource();
+            const normalImage = await buildPreparedTargetSource(false);
+            const mirroredImage = await buildPreparedTargetSource(true);
             const compiler = new window.MINDAR.IMAGE.Compiler();
-            await compiler.compileImageTargets([image], (progress) => {
+            await compiler.compileImageTargets([normalImage, mirroredImage], (progress) => {
               const percent = Math.max(1, Math.min(100, Math.round(progress)));
-              setStatus("Compiling card target... " + percent + "%", "This only needs to happen once per device unless the cache is cleared.");
+              setStatus("Compiling card targets... " + percent + "%", "Building normal and mirrored Bicycle targets for the front camera.");
             });
             const exported = compiler.exportData();
             const buffer = exported instanceof Uint8Array ? exported.buffer.slice(exported.byteOffset, exported.byteOffset + exported.byteLength) : exported;
             await storeTargetBuffer(buffer);
-            setStatus("Tracker ready.", "The MindAR target was compiled and cached. You can start the camera now.");
+            setStatus("Tracker ready.", "The MindAR Bicycle targets were compiled and cached. You can start the camera now.");
             return buffer;
           })();
         }
@@ -586,34 +595,47 @@
         camera.setAttribute("look-controls", "enabled: false");
         scene.appendChild(camera);
 
-        const target = document.createElement("a-entity");
-        target.setAttribute("mindar-image-target", "targetIndex: 0");
+        const targets = [];
+        let visibleTargets = 0;
 
-        const glow = document.createElement("a-plane");
-        glow.setAttribute("width", "1.06");
-        glow.setAttribute("height", (aspect * 1.06).toFixed(3));
-        glow.setAttribute("position", "0 0 -0.001");
-        glow.setAttribute("material", "color: #8ae8ff; transparent: true; opacity: 0.08;");
-        target.appendChild(glow);
+        function buildTargetEntity(targetIndex) {
+          const target = document.createElement("a-entity");
+          target.setAttribute("mindar-image-target", "targetIndex: " + targetIndex);
 
-        const revealPlane = document.createElement("a-plane");
-        revealPlane.setAttribute("width", "1");
-        revealPlane.setAttribute("height", aspect.toFixed(3));
-        revealPlane.setAttribute("position", "0 0 0.01");
-        revealPlane.setAttribute("material", "src: #revealCard; transparent: true; opacity: 0;");
-        target.appendChild(revealPlane);
-        revealPlaneEl = revealPlane;
+          const glow = document.createElement("a-plane");
+          glow.setAttribute("width", "1.06");
+          glow.setAttribute("height", (aspect * 1.06).toFixed(3));
+          glow.setAttribute("position", "0 0 -0.001");
+          glow.setAttribute("material", "color: #8ae8ff; transparent: true; opacity: 0.08;");
+          target.appendChild(glow);
 
-        target.addEventListener("targetFound", () => {
-          trackingValue.textContent = "Locked";
-          confidenceValue.textContent = "100%";
-          setStatus("Card tracked.", "MindAR has the Bicycle back locked. Tap X-Ray to fade in the four of hearts.");
-        });
-        target.addEventListener("targetLost", () => {
-          trackingValue.textContent = "Searching";
-          confidenceValue.textContent = "0%";
-          setStatus("Tracking lost.", "Show the full blue Bicycle back again so MindAR can reacquire it.");
-        });
+          const revealPlane = document.createElement("a-plane");
+          revealPlane.setAttribute("width", "1");
+          revealPlane.setAttribute("height", aspect.toFixed(3));
+          revealPlane.setAttribute("position", "0 0 0.01");
+          revealPlane.setAttribute("material", "src: #revealCard; transparent: true; opacity: 0;");
+          target.appendChild(revealPlane);
+
+          target.addEventListener("targetFound", () => {
+            visibleTargets += 1;
+            revealPlaneEl = revealPlane;
+            trackingValue.textContent = "Locked";
+            confidenceValue.textContent = "100%";
+            setStatus("Card tracked.", "MindAR locked onto the Bicycle back. Tap X-Ray to fade in the four of hearts.");
+          });
+          target.addEventListener("targetLost", () => {
+            visibleTargets = Math.max(0, visibleTargets - 1);
+            if (visibleTargets === 0) {
+              trackingValue.textContent = "Searching";
+              confidenceValue.textContent = "0%";
+              setStatus("Tracking lost.", "Show the full blue Bicycle back again so MindAR can reacquire it.");
+            }
+          });
+          return target;
+        }
+
+        targets.push(buildTargetEntity(0));
+        targets.push(buildTargetEntity(1));
 
         scene.addEventListener("arReady", () => {
           if (restoreGetUserMedia) {
@@ -636,7 +658,9 @@
           destroyScene();
         });
 
-        scene.appendChild(target);
+        targets.forEach((target) => {
+          scene.appendChild(target);
+        });
         sceneHost.appendChild(scene);
         sceneEl = scene;
       }
