@@ -306,8 +306,14 @@
       let appStarted = false;
       let startInFlight = false;
       let visionModulePromise = null;
+      let openCvPromise = null;
       let revealTarget = 0;
       let revealStrength = 0;
+      let smoothedCardPose = null;
+      let lastVisionDetectionMs = 0;
+
+      const analysisCanvas = document.createElement("canvas");
+      const analysisCtx = analysisCanvas.getContext("2d", { willReadFrequently: true });
 
       const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -443,6 +449,45 @@
         return visionModulePromise;
       }
 
+      async function ensureOpenCv() {
+        if (window.cv && window.cv.Mat) return window.cv;
+        if (!openCvPromise) {
+          openCvPromise = new Promise((resolve, reject) => {
+            const finish = () => {
+              const started = performance.now();
+              function poll() {
+                if (window.cv && window.cv.Mat) {
+                  resolve(window.cv);
+                  return;
+                }
+                if (performance.now() - started > 12000) {
+                  reject(new Error("opencv-load-timeout"));
+                  return;
+                }
+                requestAnimationFrame(poll);
+              }
+              poll();
+            };
+
+            const existing = document.querySelector("script[data-opencv='1']");
+            if (existing) {
+              existing.addEventListener("load", finish, { once: true });
+              existing.addEventListener("error", () => reject(new Error("opencv-load-failed")), { once: true });
+              return;
+            }
+
+            const script = document.createElement("script");
+            script.async = true;
+            script.dataset.opencv = "1";
+            script.src = "https://docs.opencv.org/4.x/opencv.js";
+            script.onload = finish;
+            script.onerror = () => reject(new Error("opencv-load-failed"));
+            document.head.appendChild(script);
+          });
+        }
+        return openCvPromise;
+      }
+
       async function ensureHandLandmarker() {
         if (handLandmarker) return;
         const visionModule = await ensureVisionModule().catch(() => {
@@ -466,6 +511,36 @@
         });
       }
 
+      function sceneToNormalized(point) {
+        return {
+          x: 0.5 - point.x / (camera.right * 2),
+          y: 0.5 - point.y / 2
+        };
+      }
+
+      function normalizedToScene(x, y) {
+        return new THREE.Vector3((0.5 - x) * camera.right * 2, (0.5 - y) * 2, 0);
+      }
+
+      function orderQuad(points) {
+        const sorted = [...points].sort((a, b) => a.y - b.y);
+        const top = sorted.slice(0, 2).sort((a, b) => a.x - b.x);
+        const bottom = sorted.slice(2).sort((a, b) => a.x - b.x);
+        return {
+          topLeft: top[0],
+          topRight: top[1],
+          bottomLeft: bottom[0],
+          bottomRight: bottom[1]
+        };
+      }
+
+      function angleLerp(a, b, alpha) {
+        let delta = b - a;
+        while (delta > Math.PI) delta -= Math.PI * 2;
+        while (delta < -Math.PI) delta += Math.PI * 2;
+        return a + delta * alpha;
+      }
+
       async function startCamera() {
         if (startInFlight) return;
         hideMessage();
@@ -476,7 +551,8 @@
           if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
             throw new Error("getusermedia-unavailable");
           }
-          await ensureHandLandmarker();
+          setStatus("Loading trackers...", "Preparing hand tracking and card-edge locking.");
+          await Promise.all([ensureHandLandmarker(), ensureOpenCv()]);
           if (stream) {
             stream.getTracks().forEach((track) => track.stop());
           }
@@ -502,6 +578,7 @@
           if (error && error.name === "NotAllowedError") detail = "Camera permission was denied. Allow camera access in Safari settings and try again.";
           else if (error && error.name === "NotReadableError") detail = "The camera appears busy or unavailable. Close other camera apps or tabs and try again.";
           else if (error && error.message === "mediapipe-script-missing") detail = "The MediaPipe library could not finish loading. Check your connection and retry.";
+          else if (error && (error.message === "opencv-load-timeout" || error.message === "opencv-load-failed")) detail = "The card-edge detector could not load. Check your connection and retry.";
           else if (error && error.message === "getusermedia-unavailable") detail = "This browser is not exposing camera APIs to the page. Please retry in Safari on iPhone.";
           setStatus("Startup failed.", detail);
           setMessage(detail);
@@ -549,6 +626,139 @@
         };
       }
 
+      function detectCardEdges(coarsePose) {
+        if (!coarsePose || !window.cv || !window.cv.Mat || !video.videoWidth || !video.videoHeight) {
+          return null;
+        }
+
+        const centerN = sceneToNormalized(coarsePose.center);
+        const roiWidthN = THREE.MathUtils.clamp((coarsePose.width / (camera.right * 2)) * 1.9, 0.18, 0.72);
+        const roiHeightN = THREE.MathUtils.clamp((coarsePose.height / 2) * 1.9, 0.22, 0.88);
+        const sx = Math.max(0, Math.floor((centerN.x - roiWidthN * 0.5) * video.videoWidth));
+        const sy = Math.max(0, Math.floor((centerN.y - roiHeightN * 0.5) * video.videoHeight));
+        const sw = Math.min(video.videoWidth - sx, Math.max(32, Math.floor(roiWidthN * video.videoWidth)));
+        const sh = Math.min(video.videoHeight - sy, Math.max(32, Math.floor(roiHeightN * video.videoHeight)));
+        if (sw < 32 || sh < 32) return null;
+
+        analysisCanvas.width = 320;
+        analysisCanvas.height = Math.max(180, Math.round((sh / sw) * 320));
+        analysisCtx.drawImage(video, sx, sy, sw, sh, 0, 0, analysisCanvas.width, analysisCanvas.height);
+
+        const cv = window.cv;
+        const imageData = analysisCtx.getImageData(0, 0, analysisCanvas.width, analysisCanvas.height);
+        const src = cv.matFromImageData(imageData);
+        const gray = new cv.Mat();
+        const blur = new cv.Mat();
+        const thresh = new cv.Mat();
+        const edges = new cv.Mat();
+        const combined = new cv.Mat();
+        const contours = new cv.MatVector();
+        const hierarchy = new cv.Mat();
+        const kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(5, 5));
+        let bestPose = null;
+
+        try {
+          cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+          cv.GaussianBlur(gray, blur, new cv.Size(5, 5), 0, 0, cv.BORDER_DEFAULT);
+          cv.threshold(blur, thresh, 150, 255, cv.THRESH_BINARY);
+          cv.Canny(blur, edges, 60, 150);
+          cv.bitwise_or(thresh, edges, combined);
+          cv.morphologyEx(combined, combined, cv.MORPH_CLOSE, kernel);
+          cv.findContours(combined, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+
+          let bestScore = 0;
+          for (let i = 0; i < contours.size(); i += 1) {
+            const contour = contours.get(i);
+            const area = Math.abs(cv.contourArea(contour));
+            if (area < analysisCanvas.width * analysisCanvas.height * 0.08) {
+              contour.delete();
+              continue;
+            }
+
+            const perimeter = cv.arcLength(contour, true);
+            const approx = new cv.Mat();
+            cv.approxPolyDP(contour, approx, perimeter * 0.035, true);
+
+            if (approx.rows === 4 && cv.isContourConvex(approx)) {
+              const points = [];
+              for (let j = 0; j < 4; j += 1) {
+                const x = approx.data32S[j * 2];
+                const y = approx.data32S[j * 2 + 1];
+                const nx = (sx + (x / analysisCanvas.width) * sw) / video.videoWidth;
+                const ny = (sy + (y / analysisCanvas.height) * sh) / video.videoHeight;
+                points.push({ x: nx, y: ny });
+              }
+
+              const ordered = orderQuad(points);
+              const topWidth = Math.hypot(ordered.topRight.x - ordered.topLeft.x, ordered.topRight.y - ordered.topLeft.y);
+              const bottomWidth = Math.hypot(ordered.bottomRight.x - ordered.bottomLeft.x, ordered.bottomRight.y - ordered.bottomLeft.y);
+              const leftHeight = Math.hypot(ordered.bottomLeft.x - ordered.topLeft.x, ordered.bottomLeft.y - ordered.topLeft.y);
+              const rightHeight = Math.hypot(ordered.bottomRight.x - ordered.topRight.x, ordered.bottomRight.y - ordered.topRight.y);
+              const widthN = (topWidth + bottomWidth) * 0.5;
+              const heightN = (leftHeight + rightHeight) * 0.5;
+              const aspect = heightN / Math.max(widthN, 0.0001);
+              const aspectPenalty = Math.abs(aspect - 1.4);
+              const score = area * Math.max(0, 1 - aspectPenalty * 1.6);
+
+              if (score > bestScore && aspect > 1.12 && aspect < 1.72) {
+                const center = normalizedToScene(
+                  (ordered.topLeft.x + ordered.topRight.x + ordered.bottomLeft.x + ordered.bottomRight.x) * 0.25,
+                  (ordered.topLeft.y + ordered.topRight.y + ordered.bottomLeft.y + ordered.bottomRight.y) * 0.25
+                );
+                bestScore = score;
+                bestPose = {
+                  center,
+                  angle:
+                    Math.atan2(ordered.topRight.y - ordered.topLeft.y, ordered.topRight.x - ordered.topLeft.x) -
+                    Math.PI / 2,
+                  width: widthN * camera.right * 2,
+                  height: heightN * 2,
+                  confidence: THREE.MathUtils.clamp(score / 7000, 0.35, 1)
+                };
+              }
+            }
+
+            approx.delete();
+            contour.delete();
+          }
+        } finally {
+          src.delete();
+          gray.delete();
+          blur.delete();
+          thresh.delete();
+          edges.delete();
+          combined.delete();
+          contours.delete();
+          hierarchy.delete();
+          kernel.delete();
+        }
+
+        return bestPose;
+      }
+
+      function smoothCardPose(nextPose) {
+        if (!nextPose) {
+          return null;
+        }
+        if (!smoothedCardPose) {
+          smoothedCardPose = {
+            center: nextPose.center.clone(),
+            angle: nextPose.angle,
+            width: nextPose.width,
+            height: nextPose.height,
+            confidence: nextPose.confidence
+          };
+          return smoothedCardPose;
+        }
+
+        smoothedCardPose.center.lerp(nextPose.center, 0.22);
+        smoothedCardPose.angle = angleLerp(smoothedCardPose.angle, nextPose.angle, 0.2);
+        smoothedCardPose.width = THREE.MathUtils.lerp(smoothedCardPose.width, nextPose.width, 0.18);
+        smoothedCardPose.height = THREE.MathUtils.lerp(smoothedCardPose.height, nextPose.height, 0.18);
+        smoothedCardPose.confidence = THREE.MathUtils.lerp(smoothedCardPose.confidence, nextPose.confidence, 0.22);
+        return smoothedCardPose;
+      }
+
       function updateCardOverlay(cardPose) {
         if (!cardPose) {
           cardGroup.visible = false;
@@ -591,10 +801,19 @@
           lastVideoTime = video.currentTime;
           const result = handLandmarker.detectForVideo(video, performance.now());
           const hand = result.landmarks?.[0];
-          const cardPose = estimateCardPose(hand);
+          const coarsePose = estimateCardPose(hand);
+          let refinedPose = coarsePose;
+          if (coarsePose && performance.now() - lastVisionDetectionMs > 80) {
+            lastVisionDetectionMs = performance.now();
+            refinedPose = detectCardEdges(coarsePose) || coarsePose;
+          } else if (smoothedCardPose) {
+            refinedPose = smoothedCardPose;
+          }
+
+          const cardPose = smoothCardPose(refinedPose);
           updateCardOverlay(cardPose);
           if (cardPose) {
-            setStatus("Card tracked.", "Tap X-Ray to fade in the hidden four of hearts.");
+            setStatus("Card tracked.", "Tap X-Ray to fade in the hidden four of hearts. Card edges are being stabilized live.");
           } else {
             setStatus("Looking for card grip...", "Hold one playing card between your thumb and index finger.");
           }
@@ -627,6 +846,8 @@
         }
         appStarted = false;
         cardGroup.visible = false;
+        smoothedCardPose = null;
+        lastVisionDetectionMs = 0;
       }
 
       startBtn.addEventListener("click", startCamera);
@@ -656,13 +877,13 @@
       updateViewport();
       xrayBtn.disabled = true;
       resetBtn.disabled = true;
-      setStatus("Warming up tracking...", "The page is preloading MediaPipe so the camera can start more reliably.");
-      ensureVisionModule()
+      setStatus("Warming up tracking...", "The page is preloading MediaPipe and card-edge detection so tracking can lock more tightly.");
+      Promise.all([ensureVisionModule(), ensureOpenCv()])
         .then(() => {
-          setStatus("Ready to start.", "Open the camera, show a card back, then tap X-Ray.");
+          setStatus("Ready to start.", "Open the camera, show a card back, then tap X-Ray. This version uses edge locking for better stability.");
         })
         .catch(() => {
-          setStatus("Tracking library failed to load.", "Your connection may have interrupted the MediaPipe download. Retry after a refresh.");
+          setStatus("Tracking library failed to load.", "Your connection may have interrupted MediaPipe or OpenCV loading. Retry after a refresh.");
         });
     </script>
   </body>
