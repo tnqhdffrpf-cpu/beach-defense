@@ -248,7 +248,7 @@
         <div class="card">
           <h1>Card Change</h1>
           <p class="lede">
-            Hold an ace of clubs in frame. This trick app uses MindAR image tracking and makes the card appear to change into the four of hearts on camera.
+            Hold an ace of clubs in frame. This trick app uses direct image matching and makes the card appear to change into the four of hearts on camera.
           </p>
           <p>
             On first load, the app compiles ace-of-clubs image targets from bundled reference art. After that, the tracker locks to that face instead of guessing from a loose rectangle.
@@ -279,12 +279,10 @@
       </div>
     </div>
 
-    <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image.prod.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
     <script>
       const overlay = document.getElementById("overlay");
       const overlayCard = overlay.querySelector(".card");
+      const video = document.getElementById("video");
       const sceneHost = document.getElementById("scene");
       const message = document.getElementById("message");
       const messageText = document.getElementById("messageText");
@@ -299,25 +297,36 @@
       const statusLine = document.getElementById("statusLine");
       const statusDetail = document.getElementById("statusDetail");
 
-      const TARGET_CACHE_DB = "card-xray-cache";
-      const TARGET_CACHE_STORE = "targets";
-      const TARGET_CACHE_KEY = "ace-clubs-v1-front-mirrored";
       const TARGET_IMAGE_PATH = "./assets/ace-of-clubs.svg";
       const TARGET_CARD_ASPECT = 1.4;
-      const TARGET_IMAGE_WIDTH = 1000;
+      const TARGET_IMAGE_WIDTH = 720;
       const TARGET_IMAGE_HEIGHT = Math.round(TARGET_IMAGE_WIDTH * TARGET_CARD_ASPECT);
+      const ANALYSIS_WIDTH = 640;
 
       let appStarted = false;
       let startInFlight = false;
       let tapCount = 0;
       let revealTarget = 0;
       let revealStrength = 0;
-      let targetBufferPromise = null;
-      let targetObjectUrl = null;
-      let sceneEl = null;
-      let revealPlaneEl = null;
       let renderTimer = 0;
-      let restoreGetUserMedia = null;
+      let stream = null;
+      let openCvPromise = null;
+      let referencePromise = null;
+      let referenceVariants = [];
+      let poseState = null;
+      let lastAnalysisTime = 0;
+
+      const overlayCanvas = document.createElement("canvas");
+      const overlayCtx = overlayCanvas.getContext("2d");
+      overlayCanvas.style.position = "absolute";
+      overlayCanvas.style.inset = "0";
+      overlayCanvas.style.width = "100%";
+      overlayCanvas.style.height = "100%";
+      overlayCanvas.style.pointerEvents = "none";
+      sceneHost.appendChild(overlayCanvas);
+
+      const analysisCanvas = document.createElement("canvas");
+      const analysisCtx = analysisCanvas.getContext("2d", { willReadFrequently: true });
 
       function setStatus(line, detail) {
         statusLine.textContent = line;
@@ -338,17 +347,61 @@
         setStatus("Tap received (" + tapCount + ").", "The page received your " + source + " tap and is starting the camera flow.");
       }
 
-      function loadReferenceImage() {
+      function updateOverlaySize() {
+        overlayCanvas.width = window.innerWidth;
+        overlayCanvas.height = window.innerHeight;
+      }
+
+      function loadImage(src, errorCode) {
         return new Promise((resolve, reject) => {
           const image = new Image();
           image.onload = () => resolve(image);
-          image.onerror = () => reject(new Error("reference-image-failed"));
-          image.src = TARGET_IMAGE_PATH;
+          image.onerror = () => reject(new Error(errorCode || "image-load-failed"));
+          image.src = src;
         });
       }
 
+      function ensureOpenCv() {
+        if (window.cv && window.cv.Mat) return Promise.resolve(window.cv);
+        if (!openCvPromise) {
+          openCvPromise = new Promise((resolve, reject) => {
+            const existing = document.querySelector("script[data-opencv='1']");
+            const finish = () => {
+              const start = performance.now();
+              const poll = () => {
+                if (window.cv && window.cv.Mat) {
+                  resolve(window.cv);
+                  return;
+                }
+                if (performance.now() - start > 15000) {
+                  reject(new Error("opencv-load-timeout"));
+                  return;
+                }
+                requestAnimationFrame(poll);
+              };
+              poll();
+            };
+
+            if (existing) {
+              existing.addEventListener("load", finish, { once: true });
+              existing.addEventListener("error", () => reject(new Error("opencv-load-failed")), { once: true });
+              return;
+            }
+
+            const script = document.createElement("script");
+            script.async = true;
+            script.dataset.opencv = "1";
+            script.src = "https://docs.opencv.org/4.x/opencv.js";
+            script.onload = finish;
+            script.onerror = () => reject(new Error("opencv-load-failed"));
+            document.head.appendChild(script);
+          });
+        }
+        return openCvPromise;
+      }
+
       async function buildPreparedTargetSource(mirrored) {
-        const image = await loadReferenceImage();
+        const image = await loadImage(TARGET_IMAGE_PATH, "reference-image-failed");
         const canvas = document.createElement("canvas");
         canvas.width = TARGET_IMAGE_WIDTH;
         canvas.height = TARGET_IMAGE_HEIGHT;
@@ -395,82 +448,46 @@
         return canvas;
       }
 
-      function openTargetDb() {
-        return new Promise((resolve, reject) => {
-          const request = indexedDB.open(TARGET_CACHE_DB, 1);
-          request.onupgradeneeded = () => {
-            request.result.createObjectStore(TARGET_CACHE_STORE);
-          };
-          request.onsuccess = () => resolve(request.result);
-          request.onerror = () => reject(request.error || new Error("indexeddb-open-failed"));
-        });
+      function computeReferenceFeatures(canvas, mirrored) {
+        const cv = window.cv;
+        const imageData = canvas.getContext("2d", { willReadFrequently: true }).getImageData(0, 0, canvas.width, canvas.height);
+        const rgba = cv.matFromImageData(imageData);
+        const gray = new cv.Mat();
+        cv.cvtColor(rgba, gray, cv.COLOR_RGBA2GRAY);
+
+        const orb = cv.ORB.create(900, 1.2, 8, 31, 0, 2, cv.ORB_HARRIS_SCORE, 31, 20);
+        const keypoints = new cv.KeyPointVector();
+        const descriptors = new cv.Mat();
+        orb.detectAndCompute(gray, new cv.Mat(), keypoints, descriptors);
+        orb.delete();
+        rgba.delete();
+        gray.delete();
+
+        return {
+          mirrored,
+          width: canvas.width,
+          height: canvas.height,
+          keypoints,
+          descriptors
+        };
       }
 
-      async function getCachedTargetBuffer() {
-        try {
-          const db = await openTargetDb();
-          return await new Promise((resolve, reject) => {
-            const tx = db.transaction(TARGET_CACHE_STORE, "readonly");
-            const store = tx.objectStore(TARGET_CACHE_STORE);
-            const request = store.get(TARGET_CACHE_KEY);
-            request.onsuccess = () => resolve(request.result || null);
-            request.onerror = () => reject(request.error || new Error("indexeddb-read-failed"));
-          });
-        } catch (error) {
-          return null;
-        }
-      }
-
-      async function storeTargetBuffer(buffer) {
-        try {
-          const db = await openTargetDb();
-          await new Promise((resolve, reject) => {
-            const tx = db.transaction(TARGET_CACHE_STORE, "readwrite");
-            const store = tx.objectStore(TARGET_CACHE_STORE);
-            const request = store.put(buffer, TARGET_CACHE_KEY);
-            request.onsuccess = () => resolve();
-            request.onerror = () => reject(request.error || new Error("indexeddb-write-failed"));
-          });
-        } catch (error) {
-        }
-      }
-
-      async function ensureTargetBuffer() {
-        if (!targetBufferPromise) {
-          targetBufferPromise = (async () => {
-            if (!window.MINDAR || !window.MINDAR.IMAGE || !window.MINDAR.IMAGE.Compiler) {
-              throw new Error("mindar-global-missing");
-            }
-            const cached = await getCachedTargetBuffer();
-            if (cached) {
-              setStatus("Tracker ready.", "Using the cached MindAR ace-of-clubs targets. You can start the camera now.");
-              return cached;
-            }
-            setStatus("Compiling card targets...", "First run only. Building MindAR image targets from the ace-of-clubs reference.");
-            const normalImage = await buildPreparedTargetSource(false);
-            const mirroredImage = await buildPreparedTargetSource(true);
-            const compiler = new window.MINDAR.IMAGE.Compiler();
-            await compiler.compileImageTargets([normalImage, mirroredImage], (progress) => {
-              const percent = Math.max(1, Math.min(100, Math.round(progress)));
-              setStatus("Compiling card targets... " + percent + "%", "Building normal and mirrored ace-of-clubs targets for the front camera.");
-            });
-            const exported = compiler.exportData();
-            const buffer = exported instanceof Uint8Array ? exported.buffer.slice(exported.byteOffset, exported.byteOffset + exported.byteLength) : exported;
-            await storeTargetBuffer(buffer);
-            setStatus("Tracker ready.", "The MindAR ace-of-clubs targets were compiled and cached. You can start the camera now.");
-            return buffer;
+      async function ensureReferenceFeatures() {
+        if (!referencePromise) {
+          referencePromise = (async () => {
+            await ensureOpenCv();
+            setStatus("Preparing tracker...", "Loading the ace of clubs reference and extracting card features.");
+            const normal = await buildPreparedTargetSource(false);
+            const mirrored = await buildPreparedTargetSource(true);
+            referenceVariants = [
+              computeReferenceFeatures(normal, false),
+              computeReferenceFeatures(mirrored, true)
+            ];
+            setStatus("Tracker ready.", "The ace of clubs reference is loaded. You can start the camera now.");
+            return referenceVariants;
           })();
         }
-        return targetBufferPromise;
-      }
-
-      async function ensureTargetUrl() {
-        const buffer = await ensureTargetBuffer();
-        if (targetObjectUrl) {
-          URL.revokeObjectURL(targetObjectUrl);
-        }
-        targetObjectUrl = URL.createObjectURL(new Blob([buffer], { type: "application/octet-stream" }));
-        return targetObjectUrl;
+        return referencePromise;
       }
 
       function drawHeart(ctx, x, y, size, color) {
@@ -521,148 +538,271 @@
         }
       }
 
-      function renderFrame() {
-        revealStrength += (revealTarget - revealStrength) * 0.1;
-        if (revealPlaneEl) {
-          revealPlaneEl.setAttribute("material", "opacity", (revealStrength * 0.985).toFixed(3));
-        }
-        revealValue.textContent = revealStrength > 0.05 ? "On" : "Off";
-        renderTimer = requestAnimationFrame(renderFrame);
-      }
-
-      function destroyScene() {
+      function stopCamera() {
         stopRenderLoop();
-        if (sceneEl) {
-          sceneEl.parentNode && sceneEl.parentNode.removeChild(sceneEl);
+        if (stream) {
+          stream.getTracks().forEach((track) => track.stop());
+          stream = null;
         }
-        if (restoreGetUserMedia) {
-          restoreGetUserMedia();
-          restoreGetUserMedia = null;
-        }
-        sceneEl = null;
-        revealPlaneEl = null;
+        video.srcObject = null;
         appStarted = false;
+        poseState = null;
         trackingValue.textContent = "Idle";
         confidenceValue.textContent = "0%";
+        overlay.classList.remove("hidden");
+        xrayBtn.disabled = true;
+        resetBtn.disabled = true;
       }
 
-      function forceFrontCamera() {
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      function getVideoDisplayRect() {
+        const vw = video.videoWidth || 1;
+        const vh = video.videoHeight || 1;
+        const videoRatio = vw / vh;
+        const viewportRatio = window.innerWidth / Math.max(window.innerHeight, 1);
+        let displayWidth;
+        let displayHeight;
+        if (videoRatio > viewportRatio) {
+          displayHeight = window.innerHeight;
+          displayWidth = displayHeight * videoRatio;
+        } else {
+          displayWidth = window.innerWidth;
+          displayHeight = displayWidth / videoRatio;
+        }
+        return {
+          left: (window.innerWidth - displayWidth) * 0.5,
+          top: (window.innerHeight - displayHeight) * 0.5,
+          width: displayWidth,
+          height: displayHeight
+        };
+      }
+
+      function videoToViewport(point) {
+        const rect = getVideoDisplayRect();
+        return {
+          x: rect.left + rect.width * (point.x / Math.max(video.videoWidth, 1)),
+          y: rect.top + rect.height * (point.y / Math.max(video.videoHeight, 1))
+        };
+      }
+
+      function smoothPoints(nextPoints, alpha) {
+        if (!poseState || !poseState.points) {
+          return nextPoints.map((point) => ({ x: point.x, y: point.y }));
+        }
+        return nextPoints.map((point, index) => ({
+          x: poseState.points[index].x + (point.x - poseState.points[index].x) * alpha,
+          y: poseState.points[index].y + (point.y - poseState.points[index].y) * alpha
+        }));
+      }
+
+      function drawImageTriangle(ctx, image, sx0, sy0, sx1, sy1, sx2, sy2, dx0, dy0, dx1, dy1, dx2, dy2) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(dx0, dy0);
+        ctx.lineTo(dx1, dy1);
+        ctx.lineTo(dx2, dy2);
+        ctx.closePath();
+        ctx.clip();
+
+        const denominator = sx0 * (sy1 - sy2) + sx1 * (sy2 - sy0) + sx2 * (sy0 - sy1);
+        if (Math.abs(denominator) < 0.0001) {
+          ctx.restore();
           return;
         }
-        const original = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
-        navigator.mediaDevices.getUserMedia = (constraints) => {
-          const nextConstraints = constraints || {};
-          const videoConstraints = typeof nextConstraints.video === "object" ? nextConstraints.video : {};
-          return original({
-            audio: false,
-            video: Object.assign({}, videoConstraints, {
-              facingMode: "user"
-            })
-          });
-        };
-        restoreGetUserMedia = () => {
-          navigator.mediaDevices.getUserMedia = original;
-        };
+
+        const a = (dx0 * (sy1 - sy2) + dx1 * (sy2 - sy0) + dx2 * (sy0 - sy1)) / denominator;
+        const b = (dy0 * (sy1 - sy2) + dy1 * (sy2 - sy0) + dy2 * (sy0 - sy1)) / denominator;
+        const c = (dx0 * (sx2 - sx1) + dx1 * (sx0 - sx2) + dx2 * (sx1 - sx0)) / denominator;
+        const d = (dy0 * (sx2 - sx1) + dy1 * (sx0 - sx2) + dy2 * (sx1 - sx0)) / denominator;
+        const e = (dx0 * (sx1 * sy2 - sx2 * sy1) + dx1 * (sx2 * sy0 - sx0 * sy2) + dx2 * (sx0 * sy1 - sx1 * sy0)) / denominator;
+        const f = (dy0 * (sx1 * sy2 - sx2 * sy1) + dy1 * (sx2 * sy0 - sx0 * sy2) + dy2 * (sx0 * sy1 - sx1 * sy0)) / denominator;
+
+        ctx.transform(a, b, c, d, e, f);
+        ctx.drawImage(image, 0, 0);
+        ctx.restore();
       }
 
-      function createScene(imageTargetSrc) {
-        const aspect = TARGET_IMAGE_HEIGHT / TARGET_IMAGE_WIDTH;
-        const revealDataUrl = buildRevealDataUrl();
-        sceneHost.innerHTML = "";
-        forceFrontCamera();
+      function drawImageToQuad(ctx, image, quad, opacity) {
+        const w = image.width;
+        const h = image.height;
+        ctx.save();
+        ctx.globalAlpha = opacity;
+        drawImageTriangle(ctx, image, 0, 0, w, 0, w, h, quad[0].x, quad[0].y, quad[1].x, quad[1].y, quad[2].x, quad[2].y);
+        drawImageTriangle(ctx, image, 0, 0, w, h, 0, h, quad[0].x, quad[0].y, quad[2].x, quad[2].y, quad[3].x, quad[3].y);
+        ctx.restore();
+      }
 
-        const scene = document.createElement("a-scene");
-        scene.setAttribute(
-          "mindar-image",
-          "imageTargetSrc: " + imageTargetSrc + "; maxTrack: 1; uiLoading: no; uiScanning: no; uiError: no; filterBeta: 300; missTolerance: 8; warmupTolerance: 1;"
-        );
-        scene.setAttribute("embedded", "");
-        scene.setAttribute("color-space", "sRGB");
-        scene.setAttribute("renderer", "colorManagement: true; physicallyCorrectLights: false");
-        scene.setAttribute("vr-mode-ui", "enabled: false");
-        scene.setAttribute("device-orientation-permission-ui", "enabled: false");
+      function drawOverlay() {
+        overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+        if (!poseState || !poseState.points) return;
 
-        const assets = document.createElement("a-assets");
-        const revealImg = document.createElement("img");
-        revealImg.setAttribute("id", "revealCard");
-        revealImg.setAttribute("src", revealDataUrl);
-        assets.appendChild(revealImg);
-        scene.appendChild(assets);
+        const points = poseState.points;
+        overlayCtx.save();
+        overlayCtx.strokeStyle = "rgba(223, 246, 255, 0.5)";
+        overlayCtx.lineWidth = 2;
+        overlayCtx.beginPath();
+        overlayCtx.moveTo(points[0].x, points[0].y);
+        for (let i = 1; i < points.length; i += 1) overlayCtx.lineTo(points[i].x, points[i].y);
+        overlayCtx.closePath();
+        overlayCtx.stroke();
+        overlayCtx.restore();
 
-        const camera = document.createElement("a-camera");
-        camera.setAttribute("position", "0 0 0");
-        camera.setAttribute("look-controls", "enabled: false");
-        scene.appendChild(camera);
+        if (revealStrength > 0.02 && window.revealImage) {
+          drawImageToQuad(overlayCtx, window.revealImage, points, Math.min(1, revealStrength * 0.98));
+        }
+      }
 
-        const targets = [];
-        let visibleTargets = 0;
+      function detectCardPose() {
+        if (!window.cv || !video.videoWidth || !video.videoHeight) return null;
+        const cv = window.cv;
+        const analysisHeight = Math.round((video.videoHeight / video.videoWidth) * ANALYSIS_WIDTH);
+        analysisCanvas.width = ANALYSIS_WIDTH;
+        analysisCanvas.height = analysisHeight;
+        analysisCtx.save();
+        analysisCtx.scale(-1, 1);
+        analysisCtx.drawImage(video, 0, 0, video.videoWidth, video.videoHeight, -analysisCanvas.width, 0, analysisCanvas.width, analysisCanvas.height);
+        analysisCtx.restore();
 
-        function buildTargetEntity(targetIndex) {
-          const target = document.createElement("a-entity");
-          target.setAttribute("mindar-image-target", "targetIndex: " + targetIndex);
+        const imageData = analysisCtx.getImageData(0, 0, analysisCanvas.width, analysisCanvas.height);
+        const rgba = cv.matFromImageData(imageData);
+        const gray = new cv.Mat();
+        cv.cvtColor(rgba, gray, cv.COLOR_RGBA2GRAY);
+        cv.GaussianBlur(gray, gray, new cv.Size(5, 5), 0, 0, cv.BORDER_DEFAULT);
 
-          const glow = document.createElement("a-plane");
-          glow.setAttribute("width", "1.06");
-          glow.setAttribute("height", (aspect * 1.06).toFixed(3));
-          glow.setAttribute("position", "0 0 -0.001");
-          glow.setAttribute("material", "color: #8ae8ff; transparent: true; opacity: 0.08;");
-          target.appendChild(glow);
+        const orb = cv.ORB.create(900, 1.2, 8, 31, 0, 2, cv.ORB_HARRIS_SCORE, 31, 20);
+        const frameKeypoints = new cv.KeyPointVector();
+        const frameDescriptors = new cv.Mat();
+        orb.detectAndCompute(gray, new cv.Mat(), frameKeypoints, frameDescriptors);
+        orb.delete();
 
-          const revealPlane = document.createElement("a-plane");
-          revealPlane.setAttribute("width", "1");
-          revealPlane.setAttribute("height", aspect.toFixed(3));
-          revealPlane.setAttribute("position", "0 0 0.01");
-          revealPlane.setAttribute("material", "src: #revealCard; transparent: true; opacity: 0;");
-          target.appendChild(revealPlane);
+        let bestPose = null;
+        const matcher = new cv.BFMatcher(cv.NORM_HAMMING, false);
 
-          target.addEventListener("targetFound", () => {
-            visibleTargets += 1;
-            revealPlaneEl = revealPlane;
-            trackingValue.textContent = "Locked";
-            confidenceValue.textContent = "100%";
-            setStatus("Card tracked.", "MindAR locked onto the ace of clubs. Tap Change Card to swap it into the four of hearts.");
-          });
-          target.addEventListener("targetLost", () => {
-            visibleTargets = Math.max(0, visibleTargets - 1);
-            if (visibleTargets === 0) {
-              trackingValue.textContent = "Searching";
-              confidenceValue.textContent = "0%";
-              setStatus("Tracking lost.", "Show the full ace of clubs again so MindAR can reacquire it.");
+        try {
+          if (frameDescriptors.empty() || frameKeypoints.size() < 12) return null;
+
+          for (const reference of referenceVariants) {
+            if (!reference.descriptors || reference.descriptors.empty()) continue;
+            const matches = new cv.DMatchVectorVector();
+            matcher.knnMatch(reference.descriptors, frameDescriptors, matches, 2);
+
+            const good = [];
+            for (let i = 0; i < matches.size(); i += 1) {
+              const pair = matches.get(i);
+              if (pair.size() < 2) {
+                pair.delete();
+                continue;
+              }
+              const m = pair.get(0);
+              const n = pair.get(1);
+              if (m.distance < 0.78 * n.distance) {
+                good.push({ queryIdx: m.queryIdx, trainIdx: m.trainIdx, distance: m.distance });
+              }
+              pair.delete();
             }
-          });
-          return target;
+            matches.delete();
+
+            if (good.length < 12) continue;
+
+            const srcPoints = [];
+            const dstPoints = [];
+            for (const match of good) {
+              const refPoint = reference.keypoints.get(match.queryIdx).pt;
+              const framePoint = frameKeypoints.get(match.trainIdx).pt;
+              srcPoints.push(refPoint.x, refPoint.y);
+              dstPoints.push(framePoint.x, framePoint.y);
+            }
+
+            const srcMat = cv.matFromArray(good.length, 1, cv.CV_32FC2, srcPoints);
+            const dstMat = cv.matFromArray(good.length, 1, cv.CV_32FC2, dstPoints);
+            const mask = new cv.Mat();
+            const homography = cv.findHomography(srcMat, dstMat, cv.RANSAC, 4, mask);
+            srcMat.delete();
+            dstMat.delete();
+
+            if (!homography || homography.empty()) {
+              mask.delete();
+              if (homography) homography.delete();
+              continue;
+            }
+
+            const refCorners = cv.matFromArray(4, 1, cv.CV_32FC2, [
+              0, 0,
+              reference.width, 0,
+              reference.width, reference.height,
+              0, reference.height
+            ]);
+            const sceneCorners = new cv.Mat();
+            cv.perspectiveTransform(refCorners, sceneCorners, homography);
+            refCorners.delete();
+            homography.delete();
+
+            const corners = [];
+            for (let i = 0; i < 4; i += 1) {
+              const x = sceneCorners.data32F[i * 2] * (video.videoWidth / analysisCanvas.width);
+              const y = sceneCorners.data32F[i * 2 + 1] * (video.videoHeight / analysisCanvas.height);
+              corners.push(videoToViewport({ x, y }));
+            }
+            sceneCorners.delete();
+
+            let inliers = 0;
+            for (let i = 0; i < mask.rows; i += 1) {
+              inliers += mask.data[i] ? 1 : 0;
+            }
+            mask.delete();
+
+            const area =
+              Math.abs(
+                corners[0].x * corners[1].y - corners[1].x * corners[0].y +
+                corners[1].x * corners[2].y - corners[2].x * corners[1].y +
+                corners[2].x * corners[3].y - corners[3].x * corners[2].y +
+                corners[3].x * corners[0].y - corners[0].x * corners[3].y
+              ) * 0.5;
+
+            const score = inliers * 8 + good.length * 2 + Math.min(area / 4000, 40);
+            if (!bestPose || score > bestPose.score) {
+              bestPose = {
+                score,
+                confidence: Math.max(0.08, Math.min(1, inliers / Math.max(good.length, 1))),
+                points: corners,
+                mirrored: reference.mirrored
+              };
+            }
+          }
+        } finally {
+          matcher.delete();
+          rgba.delete();
+          gray.delete();
+          frameKeypoints.delete();
+          frameDescriptors.delete();
         }
 
-        targets.push(buildTargetEntity(0));
-        targets.push(buildTargetEntity(1));
+        return bestPose;
+      }
 
-        scene.addEventListener("arReady", () => {
-          if (restoreGetUserMedia) {
-            restoreGetUserMedia();
-            restoreGetUserMedia = null;
+      function renderFrame() {
+        revealStrength += (revealTarget - revealStrength) * 0.1;
+        revealValue.textContent = revealStrength > 0.05 ? "On" : "Off";
+
+        if (appStarted && video.readyState >= 2 && performance.now() - lastAnalysisTime > 90) {
+          lastAnalysisTime = performance.now();
+          const detected = detectCardPose();
+          if (detected) {
+            poseState = {
+              confidence: detected.confidence,
+              points: smoothPoints(detected.points, 0.3)
+            };
+            trackingValue.textContent = "Locked";
+            confidenceValue.textContent = Math.round(poseState.confidence * 100) + "%";
+            setStatus("Card tracked.", "The Ace of Clubs was matched directly from the live camera image. Tap Change Card to swap it.");
+          } else {
+            poseState = null;
+            trackingValue.textContent = "Searching";
+            confidenceValue.textContent = "0%";
+            setStatus("Looking for Ace of Clubs...", "Hold the full card steady in bright light so the tracker can match the printed face.");
           }
-          appStarted = true;
-          overlay.classList.add("hidden");
-          xrayBtn.disabled = false;
-          resetBtn.disabled = false;
-          trackingValue.textContent = "Searching";
-          confidenceValue.textContent = "0%";
-          setStatus("Camera live.", "Show the full ace of clubs to the front camera. MindAR will lock when the image target is recognized.");
-          stopRenderLoop();
-          renderFrame();
-        });
-        scene.addEventListener("arError", () => {
-          setStatus("Startup failed.", "MindAR reported an AR startup error. Reload once and retry.");
-          setMessage("MindAR reported an AR startup error. Reload once and retry.");
-          destroyScene();
-        });
-
-        targets.forEach((target) => {
-          scene.appendChild(target);
-        });
-        sceneHost.appendChild(scene);
-        sceneEl = scene;
+        }
+        drawOverlay();
+        renderTimer = requestAnimationFrame(renderFrame);
       }
 
       async function startCamera() {
@@ -675,18 +815,37 @@
           if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
             throw new Error("getusermedia-unavailable");
           }
-          setStatus("Preparing MindAR target...", "Loading the cached ace-of-clubs targets or compiling them if this is the first run.");
-          const imageTargetSrc = await ensureTargetUrl();
-          setStatus("Starting scene...", "Building the camera scene for the front camera.");
-          destroyScene();
-          createScene(imageTargetSrc);
+          setStatus("Preparing tracker...", "Loading OpenCV and extracting Ace of Clubs features.");
+          await ensureOpenCv();
+          await ensureReferenceFeatures();
+          if (stream) stopCamera();
+          setStatus("Requesting front camera...", "Safari should prompt for the front camera if needed.");
+          stream = await navigator.mediaDevices.getUserMedia({
+            audio: false,
+            video: {
+              facingMode: "user",
+              width: { ideal: 1280 },
+              height: { ideal: 720 }
+            }
+          });
+          video.srcObject = stream;
+          await video.play();
+          appStarted = true;
+          overlay.classList.add("hidden");
+          xrayBtn.disabled = false;
+          resetBtn.disabled = false;
+          trackingValue.textContent = "Searching";
+          confidenceValue.textContent = "0%";
+          setStatus("Camera live.", "Show the full ace of clubs to the front camera. The tracker is matching the printed face directly.");
+          stopRenderLoop();
+          renderFrame();
         } catch (error) {
-          let detail = "The camera or MindAR tracker could not start.";
+          let detail = "The camera or card tracker could not start.";
           if (error && error.name === "NotAllowedError") detail = "Camera permission was denied. Allow camera access in Safari settings and try again.";
           else if (error && error.name === "NotReadableError") detail = "The camera appears busy or unavailable. Close other camera apps or tabs and try again.";
           else if (error && error.message === "reference-image-failed") detail = "The bundled ace-of-clubs image could not be loaded, so the target could not be prepared.";
           else if (error && error.message === "getusermedia-unavailable") detail = "This browser is not exposing camera APIs to the page. Please retry in Safari on iPhone.";
-          else if (error && error.message === "mindar-global-missing") detail = "The MindAR scripts did not load correctly on this device yet. Reload once and try again.";
+          else if (error && (error.message === "opencv-load-failed" || error.message === "opencv-load-timeout")) detail = "OpenCV did not load correctly on this connection. Reload once and try again.";
           setStatus("Startup failed.", detail);
           setMessage(detail);
           console.error(error);
@@ -733,29 +892,36 @@
         revealTarget = 0;
         setStatus("Card reset.", "Tap Change Card again to swap the four of hearts back onto the tracked ace of clubs.");
       });
-      window.addEventListener("pagehide", destroyScene);
+      window.addEventListener("resize", updateOverlaySize);
+      window.addEventListener("orientationchange", () => setTimeout(updateOverlaySize, 180));
+      window.addEventListener("pagehide", stopCamera);
       window.addEventListener("error", (event) => {
         const text = event && event.message ? event.message : "Unexpected page error.";
         setStatus("Runtime error.", text);
         setMessage(text);
       });
 
+      window.revealImage = null;
       xrayBtn.disabled = true;
       resetBtn.disabled = true;
       startBtn.disabled = true;
       retryBtn.disabled = true;
-      setStatus("Preparing MindAR...", "Loading the ace-of-clubs reference and building the image target cache for this device.");
-      ensureTargetBuffer()
+      updateOverlaySize();
+      loadImage(buildRevealDataUrl()).then((image) => {
+        window.revealImage = image;
+      });
+      setStatus("Preparing tracker...", "Loading the ace-of-clubs reference and direct image-matching tracker for this device.");
+      Promise.all([ensureOpenCv(), ensureReferenceFeatures()])
         .then(() => {
           startBtn.disabled = false;
           retryBtn.disabled = false;
-          setStatus("Ready to start.", "Use the front camera and show the full ace of clubs. MindAR will track that image target, then Change Card will swap it into the four of hearts.");
+          setStatus("Ready to start.", "Use the front camera and show the full ace of clubs. The tracker will match the printed face directly, then Change Card will swap it into the four of hearts.");
         })
         .catch((error) => {
           console.error(error);
           startBtn.disabled = false;
           retryBtn.disabled = false;
-          setStatus("Target prep failed.", "The MindAR target could not be prepared automatically. Retry to attempt the compile again.");
+          setStatus("Tracker prep failed.", "The direct card tracker could not be prepared automatically. Retry to attempt the load again.");
         });
     </script>
   </body>
