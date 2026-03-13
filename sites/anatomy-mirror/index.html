@@ -6,15 +6,18 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no"
     />
-    <title>Card Change</title>
+    <title>Card Tracker Diagnostic</title>
     <style>
       :root {
-        --panel: rgba(7, 12, 22, 0.76);
+        --panel: rgba(7, 12, 22, 0.78);
         --panel-strong: rgba(7, 12, 22, 0.92);
         --border: rgba(151, 214, 255, 0.3);
         --text: #f2f8ff;
         --muted: rgba(220, 234, 250, 0.74);
         --accent: #8fe9ff;
+        --good: #92f5bc;
+        --warn: #ffd889;
+        --bad: #ff9ea8;
         --button: linear-gradient(180deg, #c2f1ff 0%, #68a9e8 100%);
       }
 
@@ -35,8 +38,7 @@
       }
 
       #app,
-      #video,
-      #scene {
+      #video {
         position: fixed;
         inset: 0;
       }
@@ -47,11 +49,6 @@
         object-fit: cover;
         transform: scaleX(-1);
         background: #06101b;
-        filter: contrast(1.02) saturate(0.98);
-      }
-
-      #scene {
-        pointer-events: none;
       }
 
       .vignette {
@@ -83,7 +80,7 @@
       #hud {
         top: max(14px, env(safe-area-inset-top));
         left: 14px;
-        min-width: 220px;
+        min-width: 240px;
         padding: 12px 14px;
         border-radius: 18px;
         background: var(--panel);
@@ -183,7 +180,8 @@
         color: var(--text);
       }
 
-      .status-box {
+      .status-box,
+      .log-box {
         margin-top: 16px;
         padding: 14px;
         border-radius: 18px;
@@ -211,6 +209,28 @@
         font-size: 0.84rem;
       }
 
+      #logList {
+        margin: 0;
+        padding-left: 18px;
+        color: var(--muted);
+        font-size: 0.85rem;
+        line-height: 1.45;
+        max-height: 180px;
+        overflow: auto;
+      }
+
+      .good {
+        color: var(--good);
+      }
+
+      .warn {
+        color: var(--warn);
+      }
+
+      .bad {
+        color: var(--bad);
+      }
+
       @media (max-width: 640px) {
         #controls {
           left: 50%;
@@ -231,47 +251,43 @@
     <div id="app">
       <video id="video" playsinline muted></video>
       <div class="vignette"></div>
-      <div id="scene"></div>
 
       <div id="hud">
-        <div class="hud-row"><span class="label">Card Lock</span><span id="trackingValue" class="value">Idle</span></div>
-        <div class="hud-row"><span class="label">Reveal</span><span id="revealValue" class="value">Off</span></div>
-        <div class="hud-row"><span class="label">Confidence</span><span id="confidenceValue" class="value">0%</span></div>
+        <div class="hud-row"><span class="label">OpenCV</span><span id="opencvValue" class="value">Idle</span></div>
+        <div class="hud-row"><span class="label">Camera</span><span id="cameraValue" class="value">Idle</span></div>
+        <div class="hud-row"><span class="label">Frame Test</span><span id="frameValue" class="value">Idle</span></div>
       </div>
 
       <div id="controls">
-        <button id="xrayBtn" type="button" disabled>Change Card</button>
-        <button id="resetBtn" class="secondary" type="button" disabled>Reset</button>
+        <button id="startBtn" type="button">Run Diagnostic</button>
+        <button id="retryBtn" class="secondary" type="button">Retry</button>
       </div>
 
       <div id="overlay">
         <div class="card">
-          <h1>Card Change</h1>
+          <h1>Tracker Diagnostic</h1>
           <p class="lede">
-            Hold an ace of clubs in frame. This trick app uses direct image matching and makes the card appear to change into the four of hearts on camera.
+            This page does not try to track a card. It only tests whether your iPhone can load OpenCV, open the front camera, and process one frame.
           </p>
           <p>
-            On first load, the app compiles ace-of-clubs image targets from bundled reference art. After that, the tracker locks to that face instead of guessing from a loose rectangle.
+            The goal is to isolate whether the real blocker is the computer-vision runtime or the card-tracking logic.
           </p>
-          <p>
-            Best results come from the front camera, a single ace of clubs, and steady lighting with the full card visible.
-          </p>
-          <div style="display:flex; gap:12px; margin-top:18px; flex-wrap:wrap;">
-            <button id="startBtn" type="button">Start Camera</button>
-            <button id="retryBtn" class="secondary" type="button">Retry</button>
-          </div>
           <div class="status-box" aria-live="polite">
             <p class="status-title">Status</p>
             <p id="statusLine" class="status-line">Ready to start.</p>
-            <p id="statusDetail" class="status-detail">The camera opens first, then the Change Card button swaps the ace of clubs into the four of hearts once the card is tracked.</p>
+            <p id="statusDetail" class="status-detail">Tap Run Diagnostic to test OpenCV load, front camera access, and one-frame image processing.</p>
+          </div>
+          <div class="log-box">
+            <p class="status-title">Event Log</p>
+            <ol id="logList"></ol>
           </div>
         </div>
       </div>
 
       <div id="message" class="hidden">
         <div class="card">
-          <h1 style="font-size: clamp(1.6rem, 5vw, 2.4rem)">Camera Needed</h1>
-          <p id="messageText">Camera access failed.</p>
+          <h1 style="font-size: clamp(1.6rem, 5vw, 2.4rem)">Diagnostic Failed</h1>
+          <p id="messageText">Something went wrong.</p>
           <div style="display:flex; gap:12px; margin-top:18px;">
             <button id="messageBtn" type="button">Try Again</button>
           </div>
@@ -280,53 +296,26 @@
     </div>
 
     <script>
-      const overlay = document.getElementById("overlay");
-      const overlayCard = overlay.querySelector(".card");
       const video = document.getElementById("video");
-      const sceneHost = document.getElementById("scene");
+      const overlay = document.getElementById("overlay");
       const message = document.getElementById("message");
       const messageText = document.getElementById("messageText");
       const startBtn = document.getElementById("startBtn");
       const retryBtn = document.getElementById("retryBtn");
       const messageBtn = document.getElementById("messageBtn");
-      const xrayBtn = document.getElementById("xrayBtn");
-      const resetBtn = document.getElementById("resetBtn");
-      const trackingValue = document.getElementById("trackingValue");
-      const revealValue = document.getElementById("revealValue");
-      const confidenceValue = document.getElementById("confidenceValue");
       const statusLine = document.getElementById("statusLine");
       const statusDetail = document.getElementById("statusDetail");
-
-      const TARGET_IMAGE_PATH = "./assets/ace-of-clubs.svg";
-      const TARGET_CARD_ASPECT = 1.4;
-      const TARGET_IMAGE_WIDTH = 320;
-      const TARGET_IMAGE_HEIGHT = Math.round(TARGET_IMAGE_WIDTH * TARGET_CARD_ASPECT);
-      const ANALYSIS_WIDTH = 640;
-
-      let appStarted = false;
-      let startInFlight = false;
-      let tapCount = 0;
-      let revealTarget = 0;
-      let revealStrength = 0;
-      let renderTimer = 0;
-      let stream = null;
-      let openCvPromise = null;
-      let referencePromise = null;
-      let referenceVariants = [];
-      let poseState = null;
-      let lastAnalysisTime = 0;
-
-      const overlayCanvas = document.createElement("canvas");
-      const overlayCtx = overlayCanvas.getContext("2d");
-      overlayCanvas.style.position = "absolute";
-      overlayCanvas.style.inset = "0";
-      overlayCanvas.style.width = "100%";
-      overlayCanvas.style.height = "100%";
-      overlayCanvas.style.pointerEvents = "none";
-      sceneHost.appendChild(overlayCanvas);
+      const opencvValue = document.getElementById("opencvValue");
+      const cameraValue = document.getElementById("cameraValue");
+      const frameValue = document.getElementById("frameValue");
+      const logList = document.getElementById("logList");
 
       const analysisCanvas = document.createElement("canvas");
       const analysisCtx = analysisCanvas.getContext("2d", { willReadFrequently: true });
+
+      let openCvPromise = null;
+      let stream = null;
+      let startInFlight = false;
 
       function setStatus(line, detail) {
         statusLine.textContent = line;
@@ -342,38 +331,38 @@
         message.classList.add("hidden");
       }
 
-      function noteTap(source) {
-        tapCount += 1;
-        setStatus("Tap received (" + tapCount + ").", "The page received your " + source + " tap and is starting the camera flow.");
+      function setValue(element, text, cls) {
+        element.textContent = text;
+        element.className = "value" + (cls ? " " + cls : "");
       }
 
-      function updateOverlaySize() {
-        overlayCanvas.width = window.innerWidth;
-        overlayCanvas.height = window.innerHeight;
+      function addLog(text) {
+        const item = document.createElement("li");
+        item.textContent = text;
+        logList.appendChild(item);
       }
 
-      function loadImage(src, errorCode) {
-        return new Promise((resolve, reject) => {
-          const image = new Image();
-          image.onload = () => resolve(image);
-          image.onerror = () => reject(new Error(errorCode || "image-load-failed"));
-          image.src = src;
-        });
+      function resetDiagnosticUi() {
+        hideMessage();
+        logList.innerHTML = "";
+        setValue(opencvValue, "Idle", "");
+        setValue(cameraValue, "Idle", "");
+        setValue(frameValue, "Idle", "");
+        setStatus("Ready to start.", "Tap Run Diagnostic to test OpenCV load, front camera access, and one-frame image processing.");
       }
 
       function ensureOpenCv() {
         if (window.cv && window.cv.Mat) return Promise.resolve(window.cv);
         if (!openCvPromise) {
           openCvPromise = new Promise((resolve, reject) => {
-            const existing = document.querySelector("script[data-opencv='1']");
             const finish = () => {
-              const start = performance.now();
+              const started = performance.now();
               const poll = () => {
                 if (window.cv && window.cv.Mat) {
                   resolve(window.cv);
                   return;
                 }
-                if (performance.now() - start > 15000) {
+                if (performance.now() - started > 12000) {
                   reject(new Error("opencv-load-timeout"));
                   return;
                 }
@@ -382,6 +371,7 @@
               poll();
             };
 
+            const existing = document.querySelector("script[data-opencv='1']");
             if (existing) {
               finish();
               existing.addEventListener("error", () => reject(new Error("opencv-load-failed")), { once: true });
@@ -400,433 +390,75 @@
         return openCvPromise;
       }
 
-      function nextFrame() {
-        return new Promise((resolve) => requestAnimationFrame(() => resolve()));
-      }
-
-      async function buildPreparedTargetSource(mirrored) {
-        const image = await loadImage(TARGET_IMAGE_PATH, "reference-image-failed");
-        const canvas = document.createElement("canvas");
-        canvas.width = TARGET_IMAGE_WIDTH;
-        canvas.height = TARGET_IMAGE_HEIGHT;
-        const ctx = canvas.getContext("2d", { willReadFrequently: true });
-
-        const sourceAspect = image.naturalHeight / image.naturalWidth;
-        const desiredAspect = TARGET_CARD_ASPECT;
-        let sx = 0;
-        let sy = 0;
-        let sw = image.naturalWidth;
-        let sh = image.naturalHeight;
-
-        if (sourceAspect > desiredAspect) {
-          sh = Math.round(sw * desiredAspect);
-          sy = Math.max(0, Math.round((image.naturalHeight - sh) * 0.5));
-        } else if (sourceAspect < desiredAspect) {
-          sw = Math.round(sh / desiredAspect);
-          sx = Math.max(0, Math.round((image.naturalWidth - sw) * 0.5));
-        }
-
-        if (mirrored) {
-          ctx.save();
-          ctx.translate(canvas.width, 0);
-          ctx.scale(-1, 1);
-          ctx.drawImage(image, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
-          ctx.restore();
-        } else {
-          ctx.drawImage(image, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
-        }
-
-        const frameInset = Math.round(canvas.width * 0.035);
-        ctx.strokeStyle = "rgba(255,255,255,0.92)";
-        ctx.lineWidth = Math.max(4, Math.round(canvas.width * 0.01));
-        ctx.strokeRect(frameInset, frameInset, canvas.width - frameInset * 2, canvas.height - frameInset * 2);
-
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const data = imageData.data;
-        for (let i = 0; i < data.length; i += 4) {
-          data[i] = Math.min(255, data[i] * 1.08);
-          data[i + 1] = Math.min(255, data[i + 1] * 1.08);
-          data[i + 2] = Math.min(255, data[i + 2] * 1.15);
-        }
-        ctx.putImageData(imageData, 0, 0);
-        return canvas;
-      }
-
-      function computeReferenceFeatures(canvas, mirrored) {
-        const cv = window.cv;
-        const imageData = canvas.getContext("2d", { willReadFrequently: true }).getImageData(0, 0, canvas.width, canvas.height);
-        const rgba = cv.matFromImageData(imageData);
-        const gray = new cv.Mat();
-        cv.cvtColor(rgba, gray, cv.COLOR_RGBA2GRAY);
-
-        const orb = cv.ORB.create(320, 1.2, 6, 31, 0, 2, cv.ORB_HARRIS_SCORE, 31, 20);
-        const keypoints = new cv.KeyPointVector();
-        const descriptors = new cv.Mat();
-        orb.detectAndCompute(gray, new cv.Mat(), keypoints, descriptors);
-        orb.delete();
-        rgba.delete();
-        gray.delete();
-
-        return {
-          mirrored,
-          width: canvas.width,
-          height: canvas.height,
-          keypoints,
-          descriptors
-        };
-      }
-
-      async function ensureReferenceFeatures() {
-        if (!referencePromise) {
-          referencePromise = (async () => {
-            await ensureOpenCv();
-            setStatus("Preparing tracker...", "Loading the ace of clubs reference art.");
-            const normal = await buildPreparedTargetSource(false);
-            await nextFrame();
-            setStatus("Preparing tracker...", "Extracting features from the normal ace of clubs.");
-            const normalFeatures = computeReferenceFeatures(normal, false);
-            await nextFrame();
-            setStatus("Preparing tracker...", "Extracting features from the mirrored ace of clubs.");
-            const mirrored = await buildPreparedTargetSource(true);
-            const mirroredFeatures = computeReferenceFeatures(mirrored, true);
-            referenceVariants = [normalFeatures, mirroredFeatures];
-            setStatus("Tracker ready.", "The ace of clubs reference is loaded. You can start the camera now.");
-            return referenceVariants;
-          })();
-        }
-        return referencePromise;
-      }
-
-      function drawHeart(ctx, x, y, size, color) {
-        ctx.save();
-        ctx.fillStyle = color;
-        ctx.beginPath();
-        ctx.moveTo(x, y + size * 0.45);
-        ctx.bezierCurveTo(x, y, x - size, y, x - size, y + size * 0.45);
-        ctx.bezierCurveTo(x - size, y + size * 0.85, x, y + size * 1.1, x, y + size * 1.42);
-        ctx.bezierCurveTo(x, y + size * 1.1, x + size, y + size * 0.85, x + size, y + size * 0.45);
-        ctx.bezierCurveTo(x + size, y, x, y, x, y + size * 0.45);
-        ctx.fill();
-        ctx.restore();
-      }
-
-      function buildRevealDataUrl() {
-        const canvas = document.createElement("canvas");
-        canvas.width = 700;
-        canvas.height = 980;
-        const ctx = canvas.getContext("2d");
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = "rgba(183, 231, 255, 0.07)";
-        ctx.fillRect(24, 24, canvas.width - 48, canvas.height - 48);
-        ctx.strokeStyle = "rgba(180, 236, 255, 0.32)";
-        ctx.lineWidth = 8;
-        ctx.strokeRect(24, 24, canvas.width - 48, canvas.height - 48);
-        ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
-        ctx.font = "bold 90px Georgia, serif";
-        ctx.fillText("4", 70, 120);
-        ctx.fillText("4", canvas.width - 120, canvas.height - 60);
-        drawHeart(ctx, 118, 170, 22, "rgba(255, 130, 158, 0.95)");
-        ctx.save();
-        ctx.translate(canvas.width - 118, canvas.height - 170);
-        ctx.rotate(Math.PI);
-        drawHeart(ctx, 0, 0, 22, "rgba(255, 130, 158, 0.95)");
-        ctx.restore();
-        drawHeart(ctx, canvas.width * 0.38, canvas.height * 0.37, 58, "rgba(255, 118, 148, 0.95)");
-        drawHeart(ctx, canvas.width * 0.62, canvas.height * 0.37, 58, "rgba(255, 118, 148, 0.95)");
-        drawHeart(ctx, canvas.width * 0.38, canvas.height * 0.63, 58, "rgba(255, 118, 148, 0.95)");
-        drawHeart(ctx, canvas.width * 0.62, canvas.height * 0.63, 58, "rgba(255, 118, 148, 0.95)");
-        return canvas.toDataURL("image/png");
-      }
-
-      function stopRenderLoop() {
-        if (renderTimer) {
-          cancelAnimationFrame(renderTimer);
-          renderTimer = 0;
-        }
-      }
-
       function stopCamera() {
-        stopRenderLoop();
         if (stream) {
           stream.getTracks().forEach((track) => track.stop());
           stream = null;
         }
         video.srcObject = null;
-        appStarted = false;
-        poseState = null;
-        trackingValue.textContent = "Idle";
-        confidenceValue.textContent = "0%";
-        overlay.classList.remove("hidden");
-        xrayBtn.disabled = true;
-        resetBtn.disabled = true;
       }
 
-      function getVideoDisplayRect() {
-        const vw = video.videoWidth || 1;
-        const vh = video.videoHeight || 1;
-        const videoRatio = vw / vh;
-        const viewportRatio = window.innerWidth / Math.max(window.innerHeight, 1);
-        let displayWidth;
-        let displayHeight;
-        if (videoRatio > viewportRatio) {
-          displayHeight = window.innerHeight;
-          displayWidth = displayHeight * videoRatio;
-        } else {
-          displayWidth = window.innerWidth;
-          displayHeight = displayWidth / videoRatio;
+      async function runFrameTest() {
+        if (!window.cv || !window.cv.Mat) {
+          throw new Error("opencv-not-ready");
         }
-        return {
-          left: (window.innerWidth - displayWidth) * 0.5,
-          top: (window.innerHeight - displayHeight) * 0.5,
-          width: displayWidth,
-          height: displayHeight
-        };
-      }
-
-      function videoToViewport(point) {
-        const rect = getVideoDisplayRect();
-        return {
-          x: rect.left + rect.width * (point.x / Math.max(video.videoWidth, 1)),
-          y: rect.top + rect.height * (point.y / Math.max(video.videoHeight, 1))
-        };
-      }
-
-      function smoothPoints(nextPoints, alpha) {
-        if (!poseState || !poseState.points) {
-          return nextPoints.map((point) => ({ x: point.x, y: point.y }));
-        }
-        return nextPoints.map((point, index) => ({
-          x: poseState.points[index].x + (point.x - poseState.points[index].x) * alpha,
-          y: poseState.points[index].y + (point.y - poseState.points[index].y) * alpha
-        }));
-      }
-
-      function drawImageTriangle(ctx, image, sx0, sy0, sx1, sy1, sx2, sy2, dx0, dy0, dx1, dy1, dx2, dy2) {
-        ctx.save();
-        ctx.beginPath();
-        ctx.moveTo(dx0, dy0);
-        ctx.lineTo(dx1, dy1);
-        ctx.lineTo(dx2, dy2);
-        ctx.closePath();
-        ctx.clip();
-
-        const denominator = sx0 * (sy1 - sy2) + sx1 * (sy2 - sy0) + sx2 * (sy0 - sy1);
-        if (Math.abs(denominator) < 0.0001) {
-          ctx.restore();
-          return;
+        if (!video.videoWidth || !video.videoHeight) {
+          throw new Error("video-not-ready");
         }
 
-        const a = (dx0 * (sy1 - sy2) + dx1 * (sy2 - sy0) + dx2 * (sy0 - sy1)) / denominator;
-        const b = (dy0 * (sy1 - sy2) + dy1 * (sy2 - sy0) + dy2 * (sy0 - sy1)) / denominator;
-        const c = (dx0 * (sx2 - sx1) + dx1 * (sx0 - sx2) + dx2 * (sx1 - sx0)) / denominator;
-        const d = (dy0 * (sx2 - sx1) + dy1 * (sx0 - sx2) + dy2 * (sx1 - sx0)) / denominator;
-        const e = (dx0 * (sx1 * sy2 - sx2 * sy1) + dx1 * (sx2 * sy0 - sx0 * sy2) + dx2 * (sx0 * sy1 - sx1 * sy0)) / denominator;
-        const f = (dy0 * (sx1 * sy2 - sx2 * sy1) + dy1 * (sx2 * sy0 - sx0 * sy2) + dy2 * (sx0 * sy1 - sx1 * sy0)) / denominator;
-
-        ctx.transform(a, b, c, d, e, f);
-        ctx.drawImage(image, 0, 0);
-        ctx.restore();
-      }
-
-      function drawImageToQuad(ctx, image, quad, opacity) {
-        const w = image.width;
-        const h = image.height;
-        ctx.save();
-        ctx.globalAlpha = opacity;
-        drawImageTriangle(ctx, image, 0, 0, w, 0, w, h, quad[0].x, quad[0].y, quad[1].x, quad[1].y, quad[2].x, quad[2].y);
-        drawImageTriangle(ctx, image, 0, 0, w, h, 0, h, quad[0].x, quad[0].y, quad[2].x, quad[2].y, quad[3].x, quad[3].y);
-        ctx.restore();
-      }
-
-      function drawOverlay() {
-        overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
-        if (!poseState || !poseState.points) return;
-
-        const points = poseState.points;
-        overlayCtx.save();
-        overlayCtx.strokeStyle = "rgba(223, 246, 255, 0.5)";
-        overlayCtx.lineWidth = 2;
-        overlayCtx.beginPath();
-        overlayCtx.moveTo(points[0].x, points[0].y);
-        for (let i = 1; i < points.length; i += 1) overlayCtx.lineTo(points[i].x, points[i].y);
-        overlayCtx.closePath();
-        overlayCtx.stroke();
-        overlayCtx.restore();
-
-        if (revealStrength > 0.02 && window.revealImage) {
-          drawImageToQuad(overlayCtx, window.revealImage, points, Math.min(1, revealStrength * 0.98));
-        }
-      }
-
-      function detectCardPose() {
-        if (!window.cv || !video.videoWidth || !video.videoHeight) return null;
-        const cv = window.cv;
-        const analysisHeight = Math.round((video.videoHeight / video.videoWidth) * ANALYSIS_WIDTH);
-        analysisCanvas.width = ANALYSIS_WIDTH;
-        analysisCanvas.height = analysisHeight;
-        analysisCtx.save();
-        analysisCtx.scale(-1, 1);
-        analysisCtx.drawImage(video, 0, 0, video.videoWidth, video.videoHeight, -analysisCanvas.width, 0, analysisCanvas.width, analysisCanvas.height);
-        analysisCtx.restore();
+        analysisCanvas.width = 160;
+        analysisCanvas.height = Math.max(120, Math.round((video.videoHeight / video.videoWidth) * 160));
+        analysisCtx.drawImage(video, 0, 0, video.videoWidth, video.videoHeight, 0, 0, analysisCanvas.width, analysisCanvas.height);
 
         const imageData = analysisCtx.getImageData(0, 0, analysisCanvas.width, analysisCanvas.height);
+        const cv = window.cv;
         const rgba = cv.matFromImageData(imageData);
         const gray = new cv.Mat();
-        cv.cvtColor(rgba, gray, cv.COLOR_RGBA2GRAY);
-        cv.GaussianBlur(gray, gray, new cv.Size(5, 5), 0, 0, cv.BORDER_DEFAULT);
-
-        const orb = cv.ORB.create(900, 1.2, 8, 31, 0, 2, cv.ORB_HARRIS_SCORE, 31, 20);
-        const frameKeypoints = new cv.KeyPointVector();
-        const frameDescriptors = new cv.Mat();
-        orb.detectAndCompute(gray, new cv.Mat(), frameKeypoints, frameDescriptors);
-        orb.delete();
-
-        let bestPose = null;
-        const matcher = new cv.BFMatcher(cv.NORM_HAMMING, false);
+        const blur = new cv.Mat();
+        const edges = new cv.Mat();
 
         try {
-          if (frameDescriptors.empty() || frameKeypoints.size() < 12) return null;
+          cv.cvtColor(rgba, gray, cv.COLOR_RGBA2GRAY);
+          cv.GaussianBlur(gray, blur, new cv.Size(5, 5), 0, 0, cv.BORDER_DEFAULT);
+          cv.Canny(blur, edges, 60, 150);
 
-          for (const reference of referenceVariants) {
-            if (!reference.descriptors || reference.descriptors.empty()) continue;
-            const matches = new cv.DMatchVectorVector();
-            matcher.knnMatch(reference.descriptors, frameDescriptors, matches, 2);
-
-            const good = [];
-            for (let i = 0; i < matches.size(); i += 1) {
-              const pair = matches.get(i);
-              if (pair.size() < 2) {
-                pair.delete();
-                continue;
-              }
-              const m = pair.get(0);
-              const n = pair.get(1);
-              if (m.distance < 0.78 * n.distance) {
-                good.push({ queryIdx: m.queryIdx, trainIdx: m.trainIdx, distance: m.distance });
-              }
-              pair.delete();
-            }
-            matches.delete();
-
-            if (good.length < 12) continue;
-
-            const srcPoints = [];
-            const dstPoints = [];
-            for (const match of good) {
-              const refPoint = reference.keypoints.get(match.queryIdx).pt;
-              const framePoint = frameKeypoints.get(match.trainIdx).pt;
-              srcPoints.push(refPoint.x, refPoint.y);
-              dstPoints.push(framePoint.x, framePoint.y);
-            }
-
-            const srcMat = cv.matFromArray(good.length, 1, cv.CV_32FC2, srcPoints);
-            const dstMat = cv.matFromArray(good.length, 1, cv.CV_32FC2, dstPoints);
-            const mask = new cv.Mat();
-            const homography = cv.findHomography(srcMat, dstMat, cv.RANSAC, 4, mask);
-            srcMat.delete();
-            dstMat.delete();
-
-            if (!homography || homography.empty()) {
-              mask.delete();
-              if (homography) homography.delete();
-              continue;
-            }
-
-            const refCorners = cv.matFromArray(4, 1, cv.CV_32FC2, [
-              0, 0,
-              reference.width, 0,
-              reference.width, reference.height,
-              0, reference.height
-            ]);
-            const sceneCorners = new cv.Mat();
-            cv.perspectiveTransform(refCorners, sceneCorners, homography);
-            refCorners.delete();
-            homography.delete();
-
-            const corners = [];
-            for (let i = 0; i < 4; i += 1) {
-              const x = sceneCorners.data32F[i * 2] * (video.videoWidth / analysisCanvas.width);
-              const y = sceneCorners.data32F[i * 2 + 1] * (video.videoHeight / analysisCanvas.height);
-              corners.push(videoToViewport({ x, y }));
-            }
-            sceneCorners.delete();
-
-            let inliers = 0;
-            for (let i = 0; i < mask.rows; i += 1) {
-              inliers += mask.data[i] ? 1 : 0;
-            }
-            mask.delete();
-
-            const area =
-              Math.abs(
-                corners[0].x * corners[1].y - corners[1].x * corners[0].y +
-                corners[1].x * corners[2].y - corners[2].x * corners[1].y +
-                corners[2].x * corners[3].y - corners[3].x * corners[2].y +
-                corners[3].x * corners[0].y - corners[0].x * corners[3].y
-              ) * 0.5;
-
-            const score = inliers * 8 + good.length * 2 + Math.min(area / 4000, 40);
-            if (!bestPose || score > bestPose.score) {
-              bestPose = {
-                score,
-                confidence: Math.max(0.08, Math.min(1, inliers / Math.max(good.length, 1))),
-                points: corners,
-                mirrored: reference.mirrored
-              };
-            }
+          const data = edges.data;
+          let brightEdges = 0;
+          for (let i = 0; i < data.length; i += 1) {
+            if (data[i] > 0) brightEdges += 1;
           }
+          return {
+            width: analysisCanvas.width,
+            height: analysisCanvas.height,
+            edgePixels: brightEdges
+          };
         } finally {
-          matcher.delete();
           rgba.delete();
           gray.delete();
-          frameKeypoints.delete();
-          frameDescriptors.delete();
+          blur.delete();
+          edges.delete();
         }
-
-        return bestPose;
       }
 
-      function renderFrame() {
-        revealStrength += (revealTarget - revealStrength) * 0.1;
-        revealValue.textContent = revealStrength > 0.05 ? "On" : "Off";
-
-        if (appStarted && video.readyState >= 2 && performance.now() - lastAnalysisTime > 90) {
-          lastAnalysisTime = performance.now();
-          const detected = detectCardPose();
-          if (detected) {
-            poseState = {
-              confidence: detected.confidence,
-              points: smoothPoints(detected.points, 0.3)
-            };
-            trackingValue.textContent = "Locked";
-            confidenceValue.textContent = Math.round(poseState.confidence * 100) + "%";
-            setStatus("Card tracked.", "The Ace of Clubs was matched directly from the live camera image. Tap Change Card to swap it.");
-          } else {
-            poseState = null;
-            trackingValue.textContent = "Searching";
-            confidenceValue.textContent = "0%";
-            setStatus("Looking for Ace of Clubs...", "Hold the full card steady in bright light so the tracker can match the printed face.");
-          }
-        }
-        drawOverlay();
-        renderTimer = requestAnimationFrame(renderFrame);
-      }
-
-      async function startCamera() {
+      async function startDiagnostic() {
         if (startInFlight) return;
-        hideMessage();
         startInFlight = true;
         startBtn.disabled = true;
         retryBtn.disabled = true;
+        resetDiagnosticUi();
+
         try {
-          if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            throw new Error("getusermedia-unavailable");
-          }
-          setStatus("Preparing tracker...", "Loading OpenCV and extracting Ace of Clubs features.");
+          setStatus("Step 1 of 3", "Loading OpenCV from the web.");
+          addLog("Starting OpenCV load.");
+          setValue(opencvValue, "Loading", "warn");
           await ensureOpenCv();
-          await ensureReferenceFeatures();
-          if (stream) stopCamera();
-          setStatus("Requesting front camera...", "Safari should prompt for the front camera if needed.");
+          setValue(opencvValue, "Loaded", "good");
+          addLog("OpenCV finished loading.");
+
+          setStatus("Step 2 of 3", "Requesting the front camera.");
+          addLog("Requesting front camera.");
+          setValue(cameraValue, "Requesting", "warn");
+          stopCamera();
           stream = await navigator.mediaDevices.getUserMedia({
             audio: false,
             video: {
@@ -837,25 +469,35 @@
           });
           video.srcObject = stream;
           await video.play();
-          appStarted = true;
           overlay.classList.add("hidden");
-          xrayBtn.disabled = false;
-          resetBtn.disabled = false;
-          trackingValue.textContent = "Searching";
-          confidenceValue.textContent = "0%";
-          setStatus("Camera live.", "Show the full ace of clubs to the front camera. The tracker is matching the printed face directly.");
-          stopRenderLoop();
-          renderFrame();
+          setValue(cameraValue, "Live", "good");
+          addLog("Front camera is live.");
+
+          setStatus("Step 3 of 3", "Processing one frame with OpenCV.");
+          addLog("Running one-frame OpenCV test.");
+          setValue(frameValue, "Processing", "warn");
+          const result = await runFrameTest();
+          setValue(frameValue, "Passed", "good");
+          addLog("Frame processed at " + result.width + "x" + result.height + " with " + result.edgePixels + " edge pixels.");
+
+          setStatus("Diagnostic passed.", "OpenCV loaded, the front camera opened, and one frame processed successfully.");
         } catch (error) {
-          let detail = "The camera or card tracker could not start.";
-          if (error && error.name === "NotAllowedError") detail = "Camera permission was denied. Allow camera access in Safari settings and try again.";
-          else if (error && error.name === "NotReadableError") detail = "The camera appears busy or unavailable. Close other camera apps or tabs and try again.";
-          else if (error && error.message === "reference-image-failed") detail = "The bundled ace-of-clubs image could not be loaded, so the target could not be prepared.";
-          else if (error && error.message === "getusermedia-unavailable") detail = "This browser is not exposing camera APIs to the page. Please retry in Safari on iPhone.";
-          else if (error && (error.message === "opencv-load-failed" || error.message === "opencv-load-timeout")) detail = "OpenCV did not load correctly on this connection. Reload once and try again.";
-          setStatus("Startup failed.", detail);
-          setMessage(detail);
           console.error(error);
+          let detail = "The diagnostic failed.";
+          if (error && error.name === "NotAllowedError") detail = "Camera permission was denied. Allow the front camera in Safari settings and try again.";
+          else if (error && error.name === "NotReadableError") detail = "The camera appears busy or unavailable. Close other camera apps or tabs and try again.";
+          else if (error && error.message === "opencv-load-failed") detail = "OpenCV failed to load from the web.";
+          else if (error && error.message === "opencv-load-timeout") detail = "OpenCV did not finish loading within 12 seconds.";
+          else if (error && error.message === "video-not-ready") detail = "The camera opened, but the first frame never became ready.";
+          else if (error && error.message === "opencv-not-ready") detail = "OpenCV still was not available when frame processing started.";
+
+          if (opencvValue.textContent === "Loading") setValue(opencvValue, "Failed", "bad");
+          if (cameraValue.textContent === "Requesting") setValue(cameraValue, "Failed", "bad");
+          if (frameValue.textContent === "Processing") setValue(frameValue, "Failed", "bad");
+
+          addLog("Diagnostic failed: " + detail);
+          setStatus("Diagnostic failed.", detail);
+          setMessage(detail);
         } finally {
           startInFlight = false;
           startBtn.disabled = false;
@@ -863,61 +505,31 @@
         }
       }
 
-      function bindStartAction(element, source) {
+      function bindAction(element) {
         const activate = (event) => {
           if (event) {
             event.preventDefault();
             event.stopPropagation();
           }
-          if (startBtn.disabled || startInFlight) {
-            setStatus("Tap received.", "The button press was seen, but startup is already in progress or the button is disabled.");
-            return;
-          }
-          noteTap(source);
-          setTimeout(startCamera, 0);
+          startDiagnostic();
         };
         element.addEventListener("click", activate);
         element.addEventListener("touchend", activate, { passive: false });
         element.addEventListener("pointerup", activate);
       }
 
-      bindStartAction(startBtn, "Start Camera");
-      bindStartAction(retryBtn, "Retry");
-      bindStartAction(messageBtn, "Try Again");
-      overlayCard.addEventListener("click", (event) => {
-        if (event.target.closest("button")) return;
-        if (!appStarted && !startInFlight && !startBtn.disabled) {
-          noteTap("card");
-          startCamera();
-        }
-      });
-      xrayBtn.addEventListener("click", () => {
-        revealTarget = 1;
-        setStatus("Card changed.", "The tracked ace of clubs is being visually swapped into the four of hearts.");
-      });
-      resetBtn.addEventListener("click", () => {
-        revealTarget = 0;
-        setStatus("Card reset.", "Tap Change Card again to swap the four of hearts back onto the tracked ace of clubs.");
-      });
-      window.addEventListener("resize", updateOverlaySize);
-      window.addEventListener("orientationchange", () => setTimeout(updateOverlaySize, 180));
+      bindAction(startBtn);
+      bindAction(retryBtn);
+      bindAction(messageBtn);
       window.addEventListener("pagehide", stopCamera);
       window.addEventListener("error", (event) => {
-        const text = event && event.message ? event.message : "Unexpected page error.";
+        const text = event && event.message ? event.message : "Unexpected runtime error.";
+        addLog("Runtime error: " + text);
         setStatus("Runtime error.", text);
         setMessage(text);
       });
 
-      window.revealImage = null;
-      xrayBtn.disabled = true;
-      resetBtn.disabled = true;
-      startBtn.disabled = false;
-      retryBtn.disabled = false;
-      updateOverlaySize();
-      loadImage(buildRevealDataUrl()).then((image) => {
-        window.revealImage = image;
-      });
-      setStatus("Ready to start.", "Use the front camera and show the full ace of clubs. Tap Start Camera to load the tracker and begin matching.");
+      resetDiagnosticUi();
     </script>
   </body>
 </html>
