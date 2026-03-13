@@ -45,11 +45,6 @@
     "description": "Classic math mind-reading trick that decodes month and day from one final number."
   },
   {
-    "name": "Card X-Ray",
-    "path": "./sites/anatomy-mirror/",
-    "description": "Camera magic trick that tracks a held playing card and fades a hidden four of hearts through the back."
-  },
-  {
     "name": "Binary Birthday Oracle Cards",
     "path": "./sites/binary-birthday-oracle/",
     "description": "Mind-reading yes/no oracle cards decode day (and optional month) using classic binary magic."
