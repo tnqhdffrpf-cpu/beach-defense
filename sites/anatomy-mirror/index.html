@@ -299,7 +299,7 @@
 
       const TARGET_IMAGE_PATH = "./assets/ace-of-clubs.svg";
       const TARGET_CARD_ASPECT = 1.4;
-      const TARGET_IMAGE_WIDTH = 720;
+      const TARGET_IMAGE_WIDTH = 320;
       const TARGET_IMAGE_HEIGHT = Math.round(TARGET_IMAGE_WIDTH * TARGET_CARD_ASPECT);
       const ANALYSIS_WIDTH = 640;
 
@@ -400,6 +400,10 @@
         return openCvPromise;
       }
 
+      function nextFrame() {
+        return new Promise((resolve) => requestAnimationFrame(() => resolve()));
+      }
+
       async function buildPreparedTargetSource(mirrored) {
         const image = await loadImage(TARGET_IMAGE_PATH, "reference-image-failed");
         const canvas = document.createElement("canvas");
@@ -455,7 +459,7 @@
         const gray = new cv.Mat();
         cv.cvtColor(rgba, gray, cv.COLOR_RGBA2GRAY);
 
-        const orb = cv.ORB.create(900, 1.2, 8, 31, 0, 2, cv.ORB_HARRIS_SCORE, 31, 20);
+        const orb = cv.ORB.create(320, 1.2, 6, 31, 0, 2, cv.ORB_HARRIS_SCORE, 31, 20);
         const keypoints = new cv.KeyPointVector();
         const descriptors = new cv.Mat();
         orb.detectAndCompute(gray, new cv.Mat(), keypoints, descriptors);
@@ -476,13 +480,16 @@
         if (!referencePromise) {
           referencePromise = (async () => {
             await ensureOpenCv();
-            setStatus("Preparing tracker...", "Loading the ace of clubs reference and extracting card features.");
+            setStatus("Preparing tracker...", "Loading the ace of clubs reference art.");
             const normal = await buildPreparedTargetSource(false);
+            await nextFrame();
+            setStatus("Preparing tracker...", "Extracting features from the normal ace of clubs.");
+            const normalFeatures = computeReferenceFeatures(normal, false);
+            await nextFrame();
+            setStatus("Preparing tracker...", "Extracting features from the mirrored ace of clubs.");
             const mirrored = await buildPreparedTargetSource(true);
-            referenceVariants = [
-              computeReferenceFeatures(normal, false),
-              computeReferenceFeatures(mirrored, true)
-            ];
+            const mirroredFeatures = computeReferenceFeatures(mirrored, true);
+            referenceVariants = [normalFeatures, mirroredFeatures];
             setStatus("Tracker ready.", "The ace of clubs reference is loaded. You can start the camera now.");
             return referenceVariants;
           })();
