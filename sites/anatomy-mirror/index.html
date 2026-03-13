@@ -383,7 +383,7 @@
             };
 
             if (existing) {
-              existing.addEventListener("load", finish, { once: true });
+              finish();
               existing.addEventListener("error", () => reject(new Error("opencv-load-failed")), { once: true });
               return;
             }
@@ -904,25 +904,13 @@
       window.revealImage = null;
       xrayBtn.disabled = true;
       resetBtn.disabled = true;
-      startBtn.disabled = true;
-      retryBtn.disabled = true;
+      startBtn.disabled = false;
+      retryBtn.disabled = false;
       updateOverlaySize();
       loadImage(buildRevealDataUrl()).then((image) => {
         window.revealImage = image;
       });
-      setStatus("Preparing tracker...", "Loading the ace-of-clubs reference and direct image-matching tracker for this device.");
-      Promise.all([ensureOpenCv(), ensureReferenceFeatures()])
-        .then(() => {
-          startBtn.disabled = false;
-          retryBtn.disabled = false;
-          setStatus("Ready to start.", "Use the front camera and show the full ace of clubs. The tracker will match the printed face directly, then Change Card will swap it into the four of hearts.");
-        })
-        .catch((error) => {
-          console.error(error);
-          startBtn.disabled = false;
-          retryBtn.disabled = false;
-          setStatus("Tracker prep failed.", "The direct card tracker could not be prepared automatically. Retry to attempt the load again.");
-        });
+      setStatus("Ready to start.", "Use the front camera and show the full ace of clubs. Tap Start Camera to load the tracker and begin matching.");
     </script>
   </body>
 </html>
